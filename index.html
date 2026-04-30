@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="MoneyLog — 家計管理">
+<meta name="theme-color" content="#F5F2EC">
+<title>MoneyLog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Figtree:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:        #F5F2EC;
+  --bg2:       #EFEBE3;
+  --surface:   #FFFFFF;
+  --surface2:  #F9F7F4;
+  --surface3:  #F0EDE7;
+  --border:    #E4DFDA;
+  --border2:   #D1C9C1;
+  --ink:       #1C1917;
+  --ink2:      #6B645D;
+  --ink3:      #A89E96;
+  --green:     #2C5F3A;
+  --green-lt:  #EDF3EF;
+  --green-mid: #C8DDD0;
+  --red:       #A0291A;
+  --red-lt:    #F5ECEA;
+  --red-mid:   #E8C4BE;
+  --amber:     #8A6120;
+  --amber-lt:  #F7F0E4;
+  --amber-mid: #DFC99A;
+  --blue:      #2151A0;
+  --blue-lt:   #EBF0F8;
+  --sidebar-w: 220px;
+  --nav-h:     60px;
+  --radius:    12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --shadow-sm: 0 1px 4px rgba(28,25,23,0.06), 0 2px 10px rgba(28,25,23,0.04);
+  --shadow:    0 4px 16px rgba(28,25,23,0.08), 0 1px 4px rgba(28,25,23,0.04);
+  --t: 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Figtree', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, select, textarea {
+  font-family: 'Figtree', sans-serif;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  color: var(--ink);
+  padding: 9px 12px;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color var(--t), box-shadow var(--t);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--ink2);
+  box-shadow: 0 0 0 3px rgba(28,25,23,0.07);
+}
+textarea { resize: vertical; min-height: 72px; }
+select option { background: #fff; }
+a { color: var(--green); text-decoration: none; }
+a:hover { text-decoration: underline; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Layout */
+#app { display: flex; min-height: 100vh; }
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: fixed; left: 0; top: 0; bottom: 0;
+  z-index: 100;
+  display: flex; flex-direction: column;
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  width: 32px; height: 32px;
+  background: var(--ink); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--bg); font-size: 16px; font-weight: 700;
+  font-family: 'Cormorant Garamond', serif;
+}
+.logo-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px; font-weight: 600; color: var(--ink);
+}
+.sidebar-nav {
+  padding: 14px 10px; flex: 1;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.sidebar-bottom { padding: 12px 16px; border-top: 1px solid var(--border); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--radius-xs);
+  cursor: pointer; color: var(--ink2);
+  font-size: 13.5px; font-weight: 500;
+  transition: all var(--t); user-select: none;
+}
+.nav-item:hover { background: var(--surface2); color: var(--ink); }
+.nav-item.active { background: var(--ink); color: #fff; }
+.nav-icon { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; font-style: normal; }
+
+#main { flex: 1; margin-left: var(--sidebar-w); min-height: 100vh; }
+#content { padding: 28px 28px 48px; max-width: 920px; width: 100%; }
+
+#bottom-nav {
+  display: none; position: fixed;
+  bottom: 0; left: 0; right: 0; height: var(--nav-h);
+  background: var(--surface); border-top: 1px solid var(--border);
+  z-index: 100; padding: 0 4px;
+  justify-content: space-around; align-items: stretch;
+}
+.bn-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 6px 4px; flex: 1;
+  cursor: pointer; color: var(--ink3);
+  font-size: 10px; font-weight: 500;
+  transition: color var(--t); user-select: none;
+  border-radius: 8px; margin: 4px 2px;
+}
+.bn-icon { font-size: 18px; }
+.bn-item.active { color: var(--ink); background: var(--surface3); }
+
+#fab {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 14px); right: 18px;
+  width: 48px; height: 48px;
+  background: var(--ink); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: #fff;
+  box-shadow: var(--shadow); cursor: pointer; z-index: 90;
+  transition: all var(--t); user-select: none;
+}
+#fab:hover { transform: scale(1.06); }
+#fab:active { transform: scale(0.95); }
+#fab-menu {
+  display: none; position: fixed;
+  bottom: calc(var(--nav-h) + 74px); right: 18px;
+  flex-direction: column; gap: 7px; z-index: 89;
+}
+#fab-menu.open { display: flex; }
+.fab-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 100px; padding: 9px 16px;
+  font-size: 13px; font-weight: 500; color: var(--ink);
+  box-shadow: var(--shadow-sm); cursor: pointer;
+  transition: all var(--t); animation: fabIn .2s ease;
+  white-space: nowrap; align-self: flex-end;
+}
+@keyframes fabIn { from { opacity:0; transform:scale(.85) translateY(8px); } }
+.fab-item:hover { background: var(--surface2); box-shadow: var(--shadow); }
+
+.page { display: none; animation: fadeUp .22s ease; }
+.page.active { display: block; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* Components */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 22px; gap: 12px;
+}
+.page-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 600; line-height: 1.1;
+}
+.page-sub { font-size: 13px; color: var(--ink3); margin-top: 3px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 16px; border-radius: var(--radius-xs);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all var(--t); user-select: none; white-space: nowrap;
+}
+.btn-primary { background: var(--ink); color: #fff; }
+.btn-primary:hover { background: #333; box-shadow: var(--shadow-sm); }
+.btn-ghost { background: transparent; color: var(--ink2); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--surface2); color: var(--ink); }
+.btn-danger { background: var(--red-lt); color: var(--red); border: 1px solid var(--red-mid); }
+.btn-danger:hover { background: var(--red-mid); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 100px;
+  font-size: 11px; font-weight: 600;
+}
+.badge-high { background: var(--red-lt);   color: var(--red);   border:1px solid var(--red-mid); }
+.badge-mid  { background: var(--amber-lt); color: var(--amber); border:1px solid var(--amber-mid); }
+.badge-low  { background: var(--blue-lt);  color: var(--blue); }
+.badge-done { background: var(--green-lt); color: var(--green); border:1px solid var(--green-mid); }
+
+.form-group { margin-bottom: 13px; }
+.form-label {
+  font-size: 10.5px; font-weight: 700; color: var(--ink3);
+  display: block; margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: 0.7px;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-hint { font-size: 11px; color: var(--ink3); margin-top: 4px; line-height: 1.5; }
+
+.amount-lg {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 40px; font-weight: 600; letter-spacing: -0.5px; line-height: 1;
+}
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.stat-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 12px;
+}
+.stat-label { font-size: 10px; color: var(--ink3); margin-bottom: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
+.stat-value { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; }
+.sb-inc { border-left: 2px solid var(--green); }
+.sb-exp { border-left: 2px solid var(--red); }
+.sb-grd { border-left: 2px solid var(--amber); }
+
+.tx-list { display: flex; flex-direction: column; }
+.tx-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 6px; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t); border-radius: 4px;
+}
+.tx-item:last-child { border-bottom: none; }
+.tx-item:hover { background: var(--surface2); }
+.tx-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.td-inc { background: var(--green); }
+.td-exp { background: var(--red); }
+.tx-ico {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--surface3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.tx-info { flex: 1; min-width: 0; }
+.tx-name { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx-meta { font-size: 11px; color: var(--ink3); margin-top: 1px; }
+.tx-amt { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+
+.month-nav { display: flex; align-items: center; gap: 7px; }
+.month-nav button {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--ink2); padding: 5px 9px;
+  border-radius: var(--radius-xs); font-size: 13px; cursor: pointer;
+  transition: all var(--t);
+}
+.month-nav button:hover { background: var(--surface2); color: var(--ink); }
+.month-label { font-size: 13px; font-weight: 600; min-width: 40px; text-align: center; color: var(--ink2); }
+
+.tabs {
+  display: flex; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius-xs);
+  padding: 3px; margin-bottom: 18px; width: fit-content;
+}
+.tab {
+  padding: 6px 18px; border-radius: 5px;
+  cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--ink3); transition: all var(--t);
+}
+.tab.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+
+.grade-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  display: flex; align-items: center; gap: 16px; margin-bottom: 12px;
+}
+.grade-circle {
+  width: 58px; height: 58px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 28px;
+  flex-shrink: 0;
+}
+.gS { background: var(--ink); color: #fff; }
+.gA { background: var(--green-lt); color: var(--green); border: 2px solid var(--green-mid); }
+.gB { background: var(--blue-lt);  color: var(--blue);  border: 2px solid #B8D0EE; }
+.gC { background: var(--amber-lt); color: var(--amber); border: 2px solid var(--amber-mid); }
+.gD { background: var(--red-lt);   color: var(--red);   border: 2px solid var(--red-mid); }
+.grade-info { flex: 1; }
+.grade-title { font-size: 14.5px; font-weight: 600; margin-bottom: 2px; }
+.grade-msg { font-size: 12.5px; color: var(--ink2); }
+.prog-track { height: 4px; background: var(--bg2); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.prog-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+
+.wish-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 11px; }
+.wish-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  cursor: pointer; transition: box-shadow var(--t), transform var(--t), border-color var(--t);
+}
+.wish-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); border-color: var(--border2); }
+.wish-card.purchased { opacity: 0.55; }
+.wish-name { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; line-height: 1.3; }
+.wish-price { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; margin-bottom: 7px; }
+.wish-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
+
+.chart-wrap { position: relative; width: 100%; }
+.chart-wrap canvas { max-height: 220px; }
+
+#modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(28,25,23,0.38); backdrop-filter: blur(3px);
+  z-index: 200; align-items: flex-end; justify-content: center;
+}
+#modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  width: 100%; max-width: 520px; max-height: 94vh; overflow-y: auto;
+  padding: 22px 22px 28px;
+  box-shadow: 0 -8px 32px rgba(28,25,23,0.1);
+  animation: slideUp .28s cubic-bezier(0.32,0.72,0,1);
+}
+@keyframes slideUp { from { transform: translateY(100%); } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; }
+.modal-close {
+  font-size: 20px; color: var(--ink3); cursor: pointer;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: all var(--t);
+}
+.modal-close:hover { background: var(--surface2); color: var(--ink); }
+.modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+.chip-wrap { overflow-x: auto; margin-bottom: 13px; padding-bottom: 3px; }
+.chips { display: flex; gap: 5px; min-width: max-content; }
+.chip {
+  padding: 4px 12px; border-radius: 100px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 500; color: var(--ink2);
+  cursor: pointer; transition: all var(--t); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.chip:hover { border-color: var(--border2); color: var(--ink); background: var(--surface2); }
+.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.src-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.src-row:last-child { border-bottom: none; }
+.src-bar { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.src-bar-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .5s ease; }
+
+.settings-section { margin-bottom: 26px; }
+.settings-h {
+  font-size: 10.5px; font-weight: 700; color: var(--ink3);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cat-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.cat-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 100px;
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size: 12px;
+}
+.del-btn { color: var(--ink3); font-size: 13px; cursor: pointer; transition: color var(--t); }
+.del-btn:hover { color: var(--red); }
+
+.sync-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink3); }
+.s-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink3); }
+.s-dot.ok  { background: var(--green); }
+.s-dot.err { background: var(--red); }
+
+#toasts { position: fixed; top: 18px; right: 18px; z-index: 300; display: flex; flex-direction: column; gap: 6px; }
+.toast {
+  background: var(--ink); color: #fff;
+  padding: 10px 16px; border-radius: var(--radius-xs);
+  font-size: 13px; font-weight: 500; box-shadow: var(--shadow);
+  animation: toastIn .22s ease; max-width: 300px;
+}
+@keyframes toastIn { from { opacity:0; transform:translateX(16px); } }
+.toast.success { background: var(--green); }
+.toast.error   { background: var(--red); }
+
+.scan-area {
+  border: 1.5px dashed var(--border2); border-radius: var(--radius-xs);
+  padding: 14px; text-align: center; cursor: pointer;
+  transition: all var(--t); margin-bottom: 13px; background: var(--surface2);
+}
+.scan-area:hover { border-color: var(--ink2); background: var(--surface3); }
+
+.empty { text-align: center; padding: 44px 20px; }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-msg { font-size: 14px; font-weight: 500; color: var(--ink2); }
+.empty-sub { font-size: 12px; margin-top: 4px; color: var(--ink3); }
+
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border); border-top-color: var(--ink);
+  border-radius: 50%; animation: spin .7s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 767px) {
+  #sidebar { display: none !important; }
+  #main { margin-left: 0; }
+  #bottom-nav { display: flex; }
+  #content { padding: 18px 14px 72px; }
+  .stat-row { gap: 7px; }
+  .wish-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
+  .form-row { grid-template-columns: 1fr; gap: 0; }
+  .page-title { font-size: 24px; }
+  .amount-lg { font-size: 34px; }
+}
+@media (max-width: 400px) { .wish-grid { grid-template-columns: 1fr; } }
+@media (min-width: 768px) {
+  #modal-overlay { align-items: center; }
+  .modal { border-radius: var(--radius); animation: mFade .2s ease; }
+  @keyframes mFade { from { opacity:0; transform:scale(.97) translateY(4px); } }
+  #fab, #fab-menu { display: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">M</div>
+      <span class="logo-text">MoneyLog</span>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" data-page="home"><span class="nav-icon">⊞</span>ホーム</div>
+      <div class="nav-item" data-page="income"><span class="nav-icon">↑</span>収入</div>
+      <div class="nav-item" data-page="expense"><span class="nav-icon">↓</span>支出</div>
+      <div class="nav-item" data-page="report"><span class="nav-icon">◈</span>レポート</div>
+      <div class="nav-item" data-page="wishlist"><span class="nav-icon">◇</span>ほしい物</div>
+      <div class="nav-item" data-page="settings"><span class="nav-icon">◎</span>設定</div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sync-pill"><div class="s-dot" id="sync-dot"></div><span id="sync-label">未同期</span></div>
+    </div>
+  </nav>
+
+  <div id="main">
+    <div id="content">
+      <div id="page-home"     class="page active"></div>
+      <div id="page-income"   class="page"></div>
+      <div id="page-expense"  class="page"></div>
+      <div id="page-report"   class="page"></div>
+      <div id="page-wishlist" class="page"></div>
+      <div id="page-settings" class="page"></div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav">
+    <div class="bn-item active" data-page="home"><span class="bn-icon">⊞</span>ホーム</div>
+    <div class="bn-item" data-page="income"><span class="bn-icon">↑</span>収入</div>
+    <div class="bn-item" data-page="expense"><span class="bn-icon">↓</span>支出</div>
+    <div class="bn-item" data-page="report"><span class="bn-icon">◈</span>レポート</div>
+    <div class="bn-item" data-page="wishlist"><span class="bn-icon">◇</span>ほしい物</div>
+  </nav>
+</div>
+
+<div id="fab" onclick="toggleFab()">＋</div>
+<div id="fab-menu">
+  <div class="fab-item" onclick="openModal('expense')">↓ 支出を追加</div>
+  <div class="fab-item" onclick="openModal('income')">↑ 収入を追加</div>
+  <div class="fab-item" onclick="openModal('wish')">◇ ほしい物を追加</div>
+</div>
+
+<div id="modal-overlay" onclick="oClick(event)">
+  <div class="modal" id="modal-inner"></div>
+</div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+const ICONS={食費:'🛒',外食:'🍜',交通費:'🚃',住居費:'🏠',光熱費:'💡',通信費:'📱',医療費:'💊',衣類:'👔',娯楽:'🎮',日用品:'🧴',教育:'📚',貯蓄:'🏦','その他支出':'📦',給与:'💼',副業:'🔧',フリーランス:'💻',投資:'📈','その他収入':'💵'};
+const DEF_EC=['食費','外食','交通費','住居費','光熱費','通信費','医療費','衣類','娯楽','日用品','教育','貯蓄','その他支出'];
+const DEF_IC=['給与','副業','フリーランス','投資','その他収入'];
+
+let S={
+  page:'home', vm:new Date(), rp:'month', fabOpen:false, ef:'all',
+  data:{incomes:[],expenses:[],wishlist:[],ec:[...DEF_EC],ic:[...DEF_IC],
+        cfg:{gistId:'',token:'',akey:''}}
+};
+
+/* Storage */
+function save(){localStorage.setItem('ml3',JSON.stringify(S.data));autoSync();}
+function load(){
+  try{const r=localStorage.getItem('ml3');if(r){const p=JSON.parse(r);S.data={...S.data,...p};
+  if(!S.data.ec?.length)S.data.ec=[...DEF_EC];if(!S.data.ic?.length)S.data.ic=[...DEF_IC];
+  if(!S.data.cfg)S.data.cfg={gistId:'',token:'',akey:''};}}catch(e){}
+}
+let ast=null;
+function autoSync(){const{gistId,token}=S.data.cfg;if(!gistId||!token)return;clearTimeout(ast);ast=setTimeout(()=>pushGist(),6000);}
+
+/* Gist */
+async function pullGist(){
+  const{gistId,token}=S.data.cfg;
+  if(!gistId||!token){toast('Gist設定が必要です','error');return;}
+  setSync('syncing');
+  try{
+    const r=await fetch(`https://api.github.com/gists/${gistId}`,{headers:{Authorization:`token ${token}`,Accept:'application/vnd.github.v3+json'}});
+    if(!r.ok)throw new Error(r.status);
+    const g=await r.json();const f=g.files['ml-data.json'];
+    if(f){const d=JSON.parse(f.content);
+      S.data.incomes=merge(S.data.incomes,d.incomes||[]);
+      S.data.expenses=merge(S.data.expenses,d.expenses||[]);
+      S.data.wishlist=merge(S.data.wishlist,d.wishlist||[]);
+      if(d.ec)S.data.ec=d.ec;if(d.ic)S.data.ic=d.ic;
+      save();setSync('ok');toast('同期しました','success');renderPage();}
+  }catch(e){setSync('err');toast('同期エラー: '+e.message,'error');}
+}
+async function pushGist(){
+  const{gistId,token}=S.data.cfg;if(!gistId||!token)return;
+  setSync('syncing');
+  try{
+    await fetch(`https://api.github.com/gists/${gistId}`,{method:'PATCH',
+      headers:{Authorization:`token ${token}`,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},
+      body:JSON.stringify({files:{'ml-data.json':{content:JSON.stringify({incomes:S.data.incomes,expenses:S.data.expenses,wishlist:S.data.wishlist,ec:S.data.ec,ic:S.data.ic},null,2)}}})});
+    setSync('ok');
+  }catch(e){setSync('err');}
+}
+async function newGist(){
+  const{token}=S.data.cfg;if(!token){toast('Tokenが必要です','error');return;}
+  try{
+    const r=await fetch('https://api.github.com/gists',{method:'POST',
+      headers:{Authorization:`token ${token}`,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},
+      body:JSON.stringify({description:'MoneyLog Data',public:false,files:{'ml-data.json':{content:'{}'}}})});
+    const g=await r.json();S.data.cfg.gistId=g.id;save();toast('Gist作成: '+g.id,'success');renderPage();
+  }catch(e){toast('作成エラー','error');}
+}
+function merge(loc,rem){const m={};[...loc,...rem].forEach(x=>{if(!m[x.id]||(x.updatedAt||'')>(m[x.id].updatedAt||''))m[x.id]=x;});return Object.values(m).filter(x=>!x._del);}
+function setSync(s){
+  const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-label');
+  if(!dot)return;dot.className='s-dot';
+  if(s==='ok'){dot.classList.add('ok');lbl.textContent='同期済み';lbl.style.color='var(--green)';}
+  else if(s==='err'){dot.classList.add('err');lbl.textContent='エラー';lbl.style.color='var(--red)';}
+  else if(s==='syncing'){lbl.textContent='同期中…';lbl.style.color='var(--amber)';}
+  else{lbl.textContent='未同期';lbl.style.color='var(--ink3)';}
+}
+
+/* Nav */
+function nav(p){S.page=p;closeFab();
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('[data-page]').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll(`[data-page="${p}"]`).forEach(x=>x.classList.add('active'));
+  document.getElementById(`page-${p}`)?.classList.add('active');
+  renderPage();window.scrollTo(0,0);
+}
+function renderPage(){
+  switch(S.page){
+    case'home':rHome();break;case'income':rIncome();break;case'expense':rExpense();break;
+    case'report':rReport();break;case'wishlist':rWish();break;case'settings':rSettings();break;
+  }
+}
+
+/* Utils */
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function yen(n,s=false){const a=Math.abs(Math.round(n));const sg=s&&n>0?'+':n<0?'−':'';return sg+'¥'+a.toLocaleString('ja-JP');}
+function today(){const d=new Date();return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+function p2(n){return String(n).padStart(2,'0');}
+function mRange(d){const y=d.getFullYear(),m=d.getMonth();return{start:fmt(new Date(y,m,1)),end:fmt(new Date(y,m+1,0))};}
+function wRange(){const dt=new Date(),day=dt.getDay();const mo=new Date(dt);mo.setDate(dt.getDate()-(day===0?6:day-1));const su=new Date(mo);su.setDate(mo.getDate()+6);return{start:fmt(mo),end:fmt(su)};}
+function fmt(d){return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+function inR(ds,s,e){return ds>=s&&ds<=e;}
+function fd(ds){const d=new Date(ds+'T00:00:00');return`${d.getMonth()+1}/${d.getDate()}`;}
+function dl(d){if(!d)return null;const diff=Math.ceil((new Date(d)-new Date())/86400000);if(diff<0)return'期限切れ';if(diff===0)return'今日まで';if(diff<=7)return`残${diff}日`;if(diff<=30)return`残${Math.ceil(diff/7)}週`;return`残${Math.ceil(diff/30)}ヶ月`;}
+function grade(r){
+  if(r>=30)return{g:'S',c:'gS',msg:'素晴らしい貯蓄率です！',col:'var(--ink)'};
+  if(r>=20)return{g:'A',c:'gA',msg:'良好な管理ができています',col:'var(--green)'};
+  if(r>=10)return{g:'B',c:'gB',msg:'まずまず。もう少し頑張ろう',col:'var(--blue)'};
+  if(r>=0) return{g:'C',c:'gC',msg:'収支トントン。節約を意識しよう',col:'var(--amber)'};
+  return{g:'D',c:'gD',msg:'赤字です。支出を見直しましょう',col:'var(--red)'};
+}
+function ci(c){return ICONS[c]||'📌';}
+function empty(ic,msg,sub=''){return`<div class="empty"><div class="empty-icon">${ic}</div><div class="empty-msg">${msg}</div>${sub?`<div class="empty-sub">${sub}</div>`:''}</div>`;}
+function gv(id){return document.getElementById(id)?.value||'';}
+
+/* Toast */
+function toast(msg,type='info'){
+  const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>{el.style.cssText='opacity:0;transform:translateX(14px);transition:all .25s';setTimeout(()=>el.remove(),250);},2800);
+}
+
+/* FAB */
+function toggleFab(){S.fabOpen=!S.fabOpen;document.getElementById('fab').textContent=S.fabOpen?'✕':'＋';document.getElementById('fab-menu').classList.toggle('open',S.fabOpen);}
+function closeFab(){S.fabOpen=false;const f=document.getElementById('fab'),m=document.getElementById('fab-menu');if(f)f.textContent='＋';if(m)m.classList.remove('open');}
+document.addEventListener('click',e=>{if(S.fabOpen&&!e.target.closest('#fab')&&!e.target.closest('#fab-menu'))closeFab();});
+
+/* Modal */
+function openModal(t,id=null){closeFab();document.getElementById('modal-overlay').classList.add('open');const inn=document.getElementById('modal-inner');if(t==='expense')inn.innerHTML=mExp(id);else if(t==='income')inn.innerHTML=mInc(id);else if(t==='wish')inn.innerHTML=mWish(id);}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function oClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+
+/* ── HOME ── */
+function rHome(){
+  const rng=mRange(S.vm);
+  const inc=S.data.incomes.filter(x=>inR(x.date,rng.start,rng.end));
+  const exp=S.data.expenses.filter(x=>inR(x.date,rng.start,rng.end));
+  const tI=inc.reduce((s,x)=>s+x.amount,0),tE=exp.reduce((s,x)=>s+x.amount,0),bal=tI-tE;
+  const rate=tI>0?Math.round(bal/tI*100):0;const g=grade(rate);
+  const all=[...inc.map(x=>({...x,type:'income'})),...exp.map(x=>({...x,type:'expense'}))].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
+  document.getElementById('page-home').innerHTML=`
+    <div class="page-header">
+      <div><div class="page-title">ダッシュボード</div><div class="page-sub">${ml}</div></div>
+      <div class="month-nav"><button onclick="chM(-1)">‹</button><span class="month-label">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
+    </div>
+    <div class="card" style="padding:22px 22px 20px;margin-bottom:12px;">
+      <div class="stat-label">今月の残高</div>
+      <div class="amount-lg ${bal>=0?'pos':'neg'}" style="margin:8px 0 12px;">${yen(bal)}</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:5px;">貯蓄率 <strong style="color:${g.col}">${rate}%</strong></div>
+      <div class="prog-track"><div class="prog-fill" style="width:${Math.max(0,Math.min(100,rate))}%;background:${bal>=0?'var(--green)':'var(--red)'}"></div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box sb-inc"><div class="stat-label">収入</div><div class="stat-value pos">${yen(tI)}</div></div>
+      <div class="stat-box sb-exp"><div class="stat-label">支出</div><div class="stat-value neg">${yen(tE)}</div></div>
+      <div class="stat-box sb-grd"><div class="stat-label">評価</div><div class="stat-value" style="color:${g.col}">${g.g}</div></div>
+    </div>
+    <div class="grade-card">
+      <div class="grade-circle ${g.c}">${g.g}</div>
+      <div class="grade-info"><div class="grade-title">${ml}の評価</div><div class="grade-msg">${g.msg}</div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;">
+        <span style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;">最近の取引</span>
+        <span style="font-size:11px;color:var(--ink3)">${all.length}件</span>
+      </div>
+      <div class="tx-list">${all.length===0?empty('📭','まだ記録がありません'):all.map(txRow).join('')}</div>
+    </div>`;
+}
+function txRow(tx){
+  const isI=tx.type==='income';const cat=tx.category||'';
+  return`<div class="tx-item" onclick="openModal('${tx.type}','${tx.id}')">
+    <div class="tx-dot ${isI?'td-inc':'td-exp'}"></div>
+    <div class="tx-ico">${ci(cat)}</div>
+    <div class="tx-info"><div class="tx-name">${tx.memo||cat}</div><div class="tx-meta">${fd(tx.date)} · ${cat}</div></div>
+    <div class="tx-amt ${isI?'pos':'neg'}">${isI?'+':'−'}${yen(tx.amount)}</div>
+  </div>`;
+}
+function chM(d){const dt=new Date(S.vm);dt.setMonth(dt.getMonth()+d);S.vm=dt;renderPage();}
+
+/* ── INCOME ── */
+function rIncome(){
+  const rng=mRange(S.vm);
+  const items=S.data.incomes.filter(x=>inR(x.date,rng.start,rng.end)).sort((a,b)=>b.date.localeCompare(a.date));
+  const total=items.reduce((s,x)=>s+x.amount,0);
+  const byC={};items.forEach(x=>{byC[x.category]=(byC[x.category]||0)+x.amount;});
+  const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
+  document.getElementById('page-income').innerHTML=`
+    <div class="page-header">
+      <div><div class="page-title">収入</div><div class="page-sub">${ml}</div></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="month-nav"><button onclick="chM(-1)">‹</button><span class="month-label">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('income')">＋ 追加</button>
+      </div>
+    </div>
+    <div class="card" style="padding:20px 22px;">
+      <div class="stat-label">合計収入</div>
+      <div class="amount-lg pos" style="margin-top:6px;">${yen(total)}</div>
+    </div>
+    ${Object.keys(byC).length>0?`<div class="card">${Object.entries(byC).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`
+      <div class="src-row">
+        <div class="tx-ico" style="width:30px;height:30px;font-size:13px;">${ci(c)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:13px;font-weight:500;">${c}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:12.5px;color:var(--green)">${yen(a)}</span>
+          </div>
+          <div class="src-bar"><div class="src-bar-fill" style="width:${total>0?Math.round(a/total*100):0}%"></div></div>
+        </div>
+        <span style="font-size:10.5px;color:var(--ink3);min-width:30px;text-align:right">${total>0?Math.round(a/total*100):0}%</span>
+      </div>`).join('')}</div>`:''}
+    <div class="card"><div class="tx-list">${items.length===0?empty('↑','収入がありません','右上の「＋ 追加」から記録しましょう'):items.map(x=>txRow({...x,type:'income'})).join('')}</div></div>`;
+}
+
+/* ── EXPENSE ── */
+function rExpense(){
+  const rng=mRange(S.vm);
+  const all=S.data.expenses.filter(x=>inR(x.date,rng.start,rng.end));
+  const total=all.reduce((s,x)=>s+x.amount,0);
+  const cats=[...new Set(all.map(x=>x.category))];
+  const items=(S.ef==='all'?all:all.filter(x=>x.category===S.ef)).sort((a,b)=>b.date.localeCompare(a.date));
+  const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
+  document.getElementById('page-expense').innerHTML=`
+    <div class="page-header">
+      <div><div class="page-title">支出</div><div class="page-sub">${ml}</div></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="month-nav"><button onclick="chM(-1)">‹</button><span class="month-label">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('expense')">＋ 追加</button>
+      </div>
+    </div>
+    <div class="card" style="padding:20px 22px;">
+      <div class="stat-label">合計支出</div>
+      <div class="amount-lg neg" style="margin-top:6px;">${yen(total)}</div>
+    </div>
+    <div class="chip-wrap"><div class="chips">
+      <div class="chip ${S.ef==='all'?'on':''}" onclick="setEF('all')">すべて</div>
+      ${cats.map(c=>`<div class="chip ${S.ef===c?'on':''}" onclick="setEF('${c}')">${ci(c)} ${c}</div>`).join('')}
+    </div></div>
+    <div class="card"><div class="tx-list">${items.length===0?empty('↓','支出がありません','右上の「＋ 追加」から記録しましょう'):items.map(x=>txRow({...x,type:'expense'})).join('')}</div></div>`;
+}
+function setEF(c){S.ef=c;rExpense();}
+
+/* ── REPORT ── */
+let bC=null,pC=null;
+function rReport(){
+  const rng=S.rp==='month'?mRange(S.vm):wRange();
+  const inc=S.data.incomes.filter(x=>inR(x.date,rng.start,rng.end));
+  const exp=S.data.expenses.filter(x=>inR(x.date,rng.start,rng.end));
+  const tI=inc.reduce((s,x)=>s+x.amount,0),tE=exp.reduce((s,x)=>s+x.amount,0),bal=tI-tE;
+  const rate=tI>0?Math.round(bal/tI*100):0;const g=grade(rate);
+  const bC2={};exp.forEach(x=>{bC2[x.category]=(bC2[x.category]||0)+x.amount;});
+  const ce=Object.entries(bC2).sort((a,b)=>b[1]-a[1]);
+  const daily={};exp.forEach(x=>{daily[x.date]=(daily[x.date]||0)+x.amount;});
+  const lbl=S.rp==='month'?`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`:`${fd(rng.start)} 〜 ${fd(rng.end)}`;
+  document.getElementById('page-report').innerHTML=`
+    <div class="page-header">
+      <div><div class="page-title">レポート</div><div class="page-sub">${lbl}</div></div>
+      ${S.rp==='month'?`<div class="month-nav"><button onclick="chM(-1)">‹</button><span class="month-label">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>`:''}
+    </div>
+    <div class="tabs"><div class="tab ${S.rp==='week'?'active':''}" onclick="setRP('week')">今週</div><div class="tab ${S.rp==='month'?'active':''}" onclick="setRP('month')">月別</div></div>
+    <div class="grade-card">
+      <div class="grade-circle ${g.c}">${g.g}</div>
+      <div class="grade-info">
+        <div class="grade-title">${S.rp==='week'?'今週':'今月'}の評価</div>
+        <div class="grade-msg">${g.msg}</div>
+        <div style="font-size:11.5px;color:var(--ink3);margin-top:5px;">貯蓄率 <strong style="color:${g.col}">${rate}%</strong></div>
+        <div class="prog-track" style="margin-top:5px;"><div class="prog-fill" style="width:${Math.max(0,Math.min(100,rate))}%;background:${bal>=0?'var(--green)':'var(--red)'}"></div></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box sb-inc"><div class="stat-label">収入</div><div class="stat-value pos">${yen(tI)}</div></div>
+      <div class="stat-box sb-exp"><div class="stat-label">支出</div><div class="stat-value neg">${yen(tE)}</div></div>
+      <div class="stat-box sb-grd"><div class="stat-label">残高</div><div class="stat-value" style="color:${bal>=0?'var(--green)':'var(--red)'}">${yen(bal)}</div></div>
+    </div>
+    ${Object.keys(daily).length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px;">日別支出</div><div class="chart-wrap"><canvas id="bc"></canvas></div></div>`:''}
+    ${ce.length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">カテゴリ別</div>
+      <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="width:130px;flex-shrink:0;"><div class="chart-wrap" style="max-width:130px"><canvas id="pc"></canvas></div></div>
+        <div style="flex:1;min-width:160px;">
+          ${ce.map(([c,a])=>`<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);">
+            <div class="tx-ico" style="width:27px;height:27px;font-size:12px;border-radius:6px;">${ci(c)}</div>
+            <div style="flex:1;font-size:12.5px;">${c}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">${yen(a)}</div>
+            <div style="font-size:10.5px;color:var(--ink3);min-width:26px;text-align:right">${tE>0?Math.round(a/tE*100):0}%</div>
+          </div>`).join('')}
+        </div>
+      </div></div>`:''}
+    ${exp.length===0&&inc.length===0?empty('◈','この期間の記録がありません'):''}`;
+  if(Object.keys(daily).length>0)setTimeout(()=>drawBar(daily,rng),50);
+  if(ce.length>0)setTimeout(()=>drawPie(ce),50);
+}
+function setRP(p){S.rp=p;rReport();}
+function drawBar(daily,rng){
+  const el=document.getElementById('bc');if(!el)return;if(bC){bC.destroy();bC=null;}
+  const labels=[],vals=[],s=new Date(rng.start),e=new Date(rng.end);
+  for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){labels.push(`${d.getMonth()+1}/${d.getDate()}`);vals.push(daily[fmt(d)]||0);}
+  bC=new Chart(el,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:'rgba(160,41,26,0.12)',borderColor:'rgba(160,41,26,0.45)',borderWidth:1,borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'¥'+ctx.raw.toLocaleString()}}},
+    scales:{x:{ticks:{color:'#A89E96',font:{size:10}},grid:{color:'rgba(0,0,0,0.035)'}},y:{ticks:{color:'#A89E96',font:{size:10},callback:v=>'¥'+v.toLocaleString()},grid:{color:'rgba(0,0,0,0.035)'}}}}});
+}
+function drawPie(ce){
+  const el=document.getElementById('pc');if(!el)return;if(pC){pC.destroy();pC=null;}
+  const colors=['#2C5F3A','#A0291A','#8A6120','#2151A0','#5B4F9A','#1A6B6B','#7A3B1E','#4A4A4A','#3A6B35','#A0620A'];
+  pC=new Chart(el,{type:'doughnut',data:{labels:ce.map(([c])=>c),datasets:[{data:ce.map(([,v])=>v),backgroundColor:colors.slice(0,ce.length),borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': ¥'+ctx.raw.toLocaleString()}}}}});
+}
+
+/* ── WISHLIST ── */
+function rWish(){
+  const items=S.data.wishlist.sort((a,b)=>{const po={high:0,mid:1,low:2};if(a.status==='purchased'&&b.status!=='purchased')return 1;if(b.status==='purchased'&&a.status!=='purchased')return-1;return po[a.priority]-po[b.priority];});
+  document.getElementById('page-wishlist').innerHTML=`
+    <div class="page-header">
+      <div><div class="page-title">ほしい物リスト</div><div class="page-sub">${items.length}件 · 未購入 ${items.filter(x=>x.status!=='purchased').length}件</div></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('wish')">＋ 追加</button>
+    </div>
+    ${items.length===0?empty('◇','ほしい物がありません','気になるものをリストに追加しましょう'):`<div class="wish-grid">${items.map(wCard).join('')}</div>`}`;
+}
+function wCard(w){
+  const d=dl(w.deadline);const pb={high:'badge-high',mid:'badge-mid',low:'badge-low'};
+  return`<div class="wish-card ${w.status==='purchased'?'purchased':''}" onclick="openModal('wish','${w.id}')">
+    <div class="wish-name">${w.name}</div>
+    <div class="wish-price">${w.price?yen(w.price):'価格未定'}</div>
+    <div class="wish-tags">
+      <span class="badge ${pb[w.priority]||'badge-low'}">${{high:'高',mid:'中',low:'低'}[w.priority]||'低'}優先</span>
+      ${w.status==='purchased'?'<span class="badge badge-done">購入済</span>':w.status==='planned'?'<span class="badge badge-mid">購入予定</span>':''}
+    </div>
+    ${w.memo?`<div style="font-size:12px;color:var(--ink3);margin-bottom:5px;line-height:1.5">${w.memo}</div>`:''}
+    ${d?`<div style="font-size:12px;color:${d.includes('切れ')?'var(--red)':'var(--ink3)'}">📅 ${d}</div>`:''}
+    ${w.url?`<div style="font-size:12px;margin-top:5px;"><a href="${w.url}" target="_blank" onclick="event.stopPropagation()">リンクを開く →</a></div>`:''}
+  </div>`;
+}
+
+/* ── SETTINGS ── */
+function rSettings(){
+  const c=S.data.cfg;
+  document.getElementById('page-settings').innerHTML=`
+    <div class="page-header"><div class="page-title">設定</div></div>
+    <div class="settings-section">
+      <div class="settings-h">GitHub Gist 同期（複数端末対応）</div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">GitHub Personal Access Token</label>
+          <input type="password" value="${c.token||''}" placeholder="ghp_xxxxxxxxxxxx" oninput="setCfg('token',this.value)">
+          <div class="form-hint">Settings → Developer settings → Personal access tokens (scope: <code>gist</code>)</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gist ID</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" value="${c.gistId||''}" placeholder="自動作成 or 既存のGist ID" oninput="setCfg('gistId',this.value)" style="flex:1">
+            <button class="btn btn-ghost btn-sm" onclick="newGist()">新規作成</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="pullGist()">⬇ 取得</button>
+          <button class="btn btn-ghost btn-sm" onclick="pushGist().then(()=>toast('保存しました','success'))">⬆ 保存</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-h">レシートOCR（Anthropic API）</div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Anthropic API Key</label>
+          <input type="password" value="${c.akey||''}" placeholder="sk-ant-xxxxxxxxxxxx" oninput="setCfg('akey',this.value)">
+          <div class="form-hint">設定するとレシート写真から自動入力できます。<a href="https://console.anthropic.com" target="_blank">Anthropic Console</a>で取得。APIキーはGistに含まれません。</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-h">カテゴリ管理</div>
+      <div class="card" style="margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">支出カテゴリ</div>
+        <div class="cat-tags">${S.data.ec.map(c=>`<div class="cat-tag">${ci(c)} ${c}<span class="del-btn" onclick="delCat('ec','${c}')">×</span></div>`).join('')}</div>
+        <div style="display:flex;gap:8px;"><input type="text" id="ne" placeholder="新しいカテゴリ" style="flex:1"><button class="btn btn-ghost btn-sm" onclick="addCat('ec')">追加</button></div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">収入カテゴリ</div>
+        <div class="cat-tags">${S.data.ic.map(c=>`<div class="cat-tag">${ci(c)} ${c}<span class="del-btn" onclick="delCat('ic','${c}')">×</span></div>`).join('')}</div>
+        <div style="display:flex;gap:8px;"><input type="text" id="ni" placeholder="新しいカテゴリ" style="flex:1"><button class="btn btn-ghost btn-sm" onclick="addCat('ic')">追加</button></div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-h">データ管理</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="expData()">⬇ エクスポート</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp').click()">⬆ インポート</button>
+        <button class="btn btn-danger btn-sm" onclick="doReset()">データ削除</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="impData(this)">
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:var(--ink3);line-height:2;padding:4px 0 24px;">MoneyLog v1.0 — データはブラウザのローカルストレージに保存されます。Gist同期で複数端末共有が可能です。</div>`;
+}
+function setCfg(k,v){S.data.cfg[k]=v;save();}
+function addCat(t){const id=t==='ec'?'ne':'ni';const el=document.getElementById(id);const v=el.value.trim();if(!v)return;const arr=S.data[t];if(arr.includes(v)){toast('すでに存在します','error');return;}arr.push(v);save();el.value='';rSettings();}
+function delCat(t,c){const arr=S.data[t];const i=arr.indexOf(c);if(i>-1)arr.splice(i,1);save();rSettings();}
+function expData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S.data,null,2)],{type:'application/json'}));a.download=`moneylog_${today()}.json`;a.click();toast('エクスポートしました','success');}
+function impData(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{S.data={...S.data,...JSON.parse(e.target.result)};save();toast('インポートしました','success');renderPage();}catch{toast('読み込みエラー','error');}};r.readAsText(f);}
+function doReset(){if(!confirm('すべてのデータを削除しますか？'))return;S.data.incomes=[];S.data.expenses=[];S.data.wishlist=[];save();toast('削除しました');renderPage();}
+
+/* ── MODALS ── */
+function mExp(id){
+  const item=id?S.data.expenses.find(x=>x.id===id):null;
+  const v=item||{date:today(),amount:'',category:S.data.ec[0]||'食費',memo:'',detail:''};
+  const hk=!!S.data.cfg.akey;
+  return`<div class="modal-header"><div class="modal-title">${item?'支出を編集':'支出を追加'}</div><div class="modal-close" onclick="closeModal()">×</div></div>
+    ${hk?`<div class="scan-area" onclick="document.getElementById('rv').click()"><div style="font-size:20px;">📷</div><div style="font-size:12.5px;color:var(--ink3);margin-top:3px;">レシートを撮影して自動入力</div></div>
+    <input type="file" id="rv" accept="image/*" capture="environment" style="display:none" onchange="scanR(this)"><div id="sr"></div>`:''}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">日付</label><input type="date" id="md" value="${v.date}"></div>
+      <div class="form-group"><label class="form-label">金額 (¥)</label><input type="number" id="ma" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div>
+    </div>
+    <div class="form-group"><label class="form-label">カテゴリ</label><select id="mc">${S.data.ec.map(c=>`<option ${v.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">メモ</label><input type="text" id="mm" value="${v.memo||''}" placeholder="店名・商品名など"></div>
+    <div class="form-group"><label class="form-label">詳細（任意）</label><textarea id="mdt" placeholder="内訳など">${v.detail||''}</textarea></div>
+    <div class="modal-actions">
+      ${item?`<button class="btn btn-danger btn-sm" onclick="delItem('expense','${id}')">削除</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveE('${id||''}')">保存</button>
+    </div>`;
+}
+function mInc(id){
+  const item=id?S.data.incomes.find(x=>x.id===id):null;
+  const v=item||{date:today(),amount:'',category:S.data.ic[0]||'給与',memo:''};
+  return`<div class="modal-header"><div class="modal-title">${item?'収入を編集':'収入を追加'}</div><div class="modal-close" onclick="closeModal()">×</div></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">日付</label><input type="date" id="md" value="${v.date}"></div>
+      <div class="form-group"><label class="form-label">金額 (¥)</label><input type="number" id="ma" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div>
+    </div>
+    <div class="form-group"><label class="form-label">収入先</label><select id="mc">${S.data.ic.map(c=>`<option ${v.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">メモ</label><input type="text" id="mm" value="${v.memo||''}" placeholder="備考"></div>
+    <div class="modal-actions">
+      ${item?`<button class="btn btn-danger btn-sm" onclick="delItem('income','${id}')">削除</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveI('${id||''}')">保存</button>
+    </div>`;
+}
+function mWish(id){
+  const item=id?S.data.wishlist.find(x=>x.id===id):null;
+  const v=item||{name:'',price:'',priority:'mid',deadline:'',url:'',memo:'',status:'considering'};
+  return`<div class="modal-header"><div class="modal-title">${item?'ほしい物を編集':'ほしい物を追加'}</div><div class="modal-close" onclick="closeModal()">×</div></div>
+    <div class="form-group"><label class="form-label">商品名</label><input type="text" id="mn" value="${v.name}" placeholder="何がほしい？"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">価格 (¥)</label><input type="number" id="mp" value="${v.price||''}" placeholder="0" min="0" inputmode="decimal"></div>
+      <div class="form-group"><label class="form-label">重要度</label><select id="mpr"><option value="high" ${v.priority==='high'?'selected':''}>高</option><option value="mid" ${v.priority==='mid'?'selected':''}>中</option><option value="low" ${v.priority==='low'?'selected':''}>低</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">購入希望日</label><input type="date" id="mdl" value="${v.deadline||''}"></div>
+      <div class="form-group"><label class="form-label">ステータス</label><select id="mst"><option value="considering" ${v.status==='considering'?'selected':''}>検討中</option><option value="planned" ${v.status==='planned'?'selected':''}>購入予定</option><option value="purchased" ${v.status==='purchased'?'selected':''}>購入済み</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">URL（任意）</label><input type="url" id="mu" value="${v.url||''}" placeholder="https://..."></div>
+    <div class="form-group"><label class="form-label">メモ</label><textarea id="mm" placeholder="理由・コメントなど">${v.memo||''}</textarea></div>
+    <div class="modal-actions">
+      ${item?`<button class="btn btn-danger btn-sm" onclick="delItem('wish','${id}')">削除</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveW('${id||''}')">保存</button>
+    </div>`;
+}
+
+/* CRUD */
+function saveE(id){
+  const date=gv('md'),amount=parseFloat(gv('ma')),category=gv('mc'),memo=gv('mm').trim(),detail=gv('mdt').trim();
+  if(!date||!amount||amount<=0){toast('日付と金額を入力してください','error');return;}
+  const now=new Date().toISOString();
+  if(id){const i=S.data.expenses.findIndex(x=>x.id===id);if(i>-1)S.data.expenses[i]={...S.data.expenses[i],date,amount,category,memo,detail,updatedAt:now};}
+  else S.data.expenses.push({id:uid(),date,amount,category,memo,detail,createdAt:now,updatedAt:now});
+  save();closeModal();toast(id?'支出を更新しました':'支出を追加しました','success');renderPage();
+}
+function saveI(id){
+  const date=gv('md'),amount=parseFloat(gv('ma')),category=gv('mc'),memo=gv('mm').trim();
+  if(!date||!amount||amount<=0){toast('日付と金額を入力してください','error');return;}
+  const now=new Date().toISOString();
+  if(id){const i=S.data.incomes.findIndex(x=>x.id===id);if(i>-1)S.data.incomes[i]={...S.data.incomes[i],date,amount,category,memo,updatedAt:now};}
+  else S.data.incomes.push({id:uid(),date,amount,category,memo,createdAt:now,updatedAt:now});
+  save();closeModal();toast(id?'収入を更新しました':'収入を追加しました','success');renderPage();
+}
+function saveW(id){
+  const name=gv('mn').trim(),price=parseFloat(gv('mp'))||0,priority=gv('mpr'),deadline=gv('mdl'),status=gv('mst'),url=gv('mu').trim(),memo=gv('mm').trim();
+  if(!name){toast('商品名を入力してください','error');return;}
+  const now=new Date().toISOString();
+  if(id){const i=S.data.wishlist.findIndex(x=>x.id===id);if(i>-1)S.data.wishlist[i]={...S.data.wishlist[i],name,price,priority,deadline,status,url,memo,updatedAt:now};}
+  else S.data.wishlist.push({id:uid(),name,price,priority,deadline,status,url,memo,createdAt:now,updatedAt:now});
+  save();closeModal();toast('保存しました','success');renderPage();
+}
+function delItem(t,id){
+  if(!confirm('削除しますか？'))return;
+  if(t==='expense')S.data.expenses=S.data.expenses.filter(x=>x.id!==id);
+  else if(t==='income')S.data.incomes=S.data.incomes.filter(x=>x.id!==id);
+  else if(t==='wish')S.data.wishlist=S.data.wishlist.filter(x=>x.id!==id);
+  save();closeModal();toast('削除しました');renderPage();
+}
+
+/* Receipt OCR */
+async function scanR(inp){
+  const f=inp.files[0];if(!f)return;
+  const key=S.data.cfg.akey;const sr=document.getElementById('sr');
+  sr.innerHTML=`<div style="text-align:center;padding:10px;font-size:12px;color:var(--ink3)"><div class="spinner"></div><br>解析中…</div>`;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const b64=e.target.result.split(',')[1];
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-opus-4-5',max_tokens:300,messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:f.type,data:b64}},
+          {type:'text',text:'レシートからJSONで: {"date":"YYYY-MM-DD","amount":数値,"category":"食費/外食/日用品/その他支出のいずれか","memo":"店名"}。今日='+today()+'。JSONのみ返答。'}
+        ]}]})});
+      const d=await res.json();const txt=d.content?.[0]?.text||'';
+      const m=txt.match(/\{[\s\S]*?\}/);
+      if(m){const p=JSON.parse(m[0]);
+        if(p.date)document.getElementById('md').value=p.date;
+        if(p.amount)document.getElementById('ma').value=p.amount;
+        if(p.category){const sel=document.getElementById('mc');const o=Array.from(sel.options).find(x=>x.value===p.category);if(o)sel.value=o.value;}
+        if(p.memo)document.getElementById('mm').value=p.memo;
+        sr.innerHTML=`<div style="font-size:12px;color:var(--green);padding:5px 0 10px;">✓ 読み取り完了。確認して保存してください</div>`;
+        toast('レシートを読み取りました','success');
+      }else{sr.innerHTML=`<div style="font-size:12px;color:var(--red);padding:5px 0">読み取れませんでした。手動入力してください</div>`;}
+    }catch(err){sr.innerHTML=`<div style="font-size:12px;color:var(--red);padding:5px 0">エラー: ${err.message}</div>`;}
+  };
+  reader.readAsDataURL(f);
+}
+
+/* Init */
+function init(){
+  load();
+  document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>nav(el.dataset.page)));
+  nav('home');
+  if(S.data.cfg.gistId&&S.data.cfg.token)setTimeout(pullGist,1200);
+}
+init();
+</script>
+</body>
+</html>
