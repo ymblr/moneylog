@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="theme-color" content="#F5F2EC">
 <title>MoneyLog</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Figtree:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
@@ -36,48 +38,67 @@ a{color:var(--green);}
 ::-webkit-scrollbar{width:3px;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
-/* Mobile header */
-#mhd{display:none;position:fixed;top:0;left:0;right:0;height:var(--mhh);background:var(--surface);border-bottom:1px solid var(--border);z-index:110;padding:0 14px;align-items:center;gap:10px;}
-.mhbtn{width:34px;height:34px;border-radius:var(--rxs);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink2);cursor:pointer;}
+/* ── Full-screen overlays ── */
+.fullscr{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:500;padding:20px;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:36px 32px;width:100%;max-width:420px;box-shadow:var(--sh);text-align:center;}
+.auth-logo{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--ink3);margin-bottom:28px;line-height:1.6;}
+.auth-step{display:flex;align-items:flex-start;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px;margin-bottom:8px;text-align:left;font-size:13px;line-height:1.6;}
+.step-num{width:22px;height:22px;background:var(--ink);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:var(--ink);color:#fff;border-radius:var(--rxs);font-size:14px;font-weight:600;cursor:pointer;transition:all var(--t);margin-top:20px;}
+.google-btn:hover{background:#333;box-shadow:var(--sh0);}
+.google-btn svg{width:18px;height:18px;flex-shrink:0;}
+.auth-field{margin-bottom:10px;text-align:left;}
+.auth-field label{font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:5px;}
+.auth-divider{height:1px;background:var(--border);margin:20px 0;}
 
-/* Sidebar */
+/* ── Layout ── */
+#app{display:flex;min-height:100vh;}
 #sb{width:var(--sw);background:var(--surface);border-right:1px solid var(--border);position:fixed;left:0;top:0;bottom:0;z-index:100;display:flex;flex-direction:column;}
-.sblogo{padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
-.logom{width:30px;height:30px;background:var(--ink);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:15px;font-weight:700;font-family:'Cormorant Garamond',serif;}
+.sblogo{padding:20px 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.logom{width:30px;height:30px;background:var(--ink);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:15px;font-weight:700;font-family:'Cormorant Garamond',serif;flex-shrink:0;}
 .logot{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;}
 .sbnav{padding:12px 10px;flex:1;display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
-.sbbot{padding:11px 14px;border-top:1px solid var(--border);}
+.sbbot{padding:10px 12px;border-top:1px solid var(--border);}
 .nv{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rxs);cursor:pointer;color:var(--ink2);font-size:13px;font-weight:500;transition:all var(--t);user-select:none;}
 .nv:hover{background:var(--surface2);color:var(--ink);}
 .nv.active{background:var(--ink);color:#fff;}
 .ni{font-size:13px;width:18px;text-align:center;flex-shrink:0;}
+.user-badge{display:flex;align-items:center;gap:8px;}
+.user-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--border);}
+.user-name{font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.signout-btn{font-size:11px;color:var(--ink3);cursor:pointer;padding:2px 6px;border-radius:4px;transition:all var(--t);}
+.signout-btn:hover{background:var(--red-lt);color:var(--red);}
 
-/* Main */
 #main{flex:1;margin-left:var(--sw);min-height:100vh;}
 #cnt{padding:26px 26px 48px;max-width:940px;width:100%;}
-#app{display:flex;min-height:100vh;}
 
-/* Bottom nav */
+/* ── Mobile header ── */
+#mhd{display:none;position:fixed;top:0;left:0;right:0;height:var(--mhh);background:var(--surface);border-bottom:1px solid var(--border);z-index:110;padding:0 14px;align-items:center;gap:10px;}
+.mhbtn{width:34px;height:34px;border-radius:var(--rxs);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink2);cursor:pointer;}
+
+/* ── Bottom nav ── */
 #bnv{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nh);background:var(--surface);border-top:1px solid var(--border);z-index:100;padding:0 2px;justify-content:space-around;align-items:stretch;}
 .bni{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 3px;flex:1;cursor:pointer;color:var(--ink3);font-size:9.5px;font-weight:500;transition:color var(--t);user-select:none;border-radius:8px;margin:4px 1px;}
 .bni .bi{font-size:17px;}
 .bni.active{color:var(--ink);background:var(--surface3);}
 
-/* FAB */
-#fab{position:fixed;bottom:calc(var(--nh)+14px);right:16px;width:46px;height:46px;background:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:var(--sh);cursor:pointer;z-index:90;transition:all var(--t);user-select:none;}
+/* ── FAB ── */
+#fab{position:fixed;bottom:calc(var(--nh)+14px);right:16px;width:46px;height:46px;background:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:var(--sh);cursor:pointer;z-index:90;transition:all var(--t);}
 #fab:hover{transform:scale(1.06);}
+#fab:active{transform:scale(.95);}
 #fabm{display:none;position:fixed;bottom:calc(var(--nh)+70px);right:16px;flex-direction:column;gap:7px;z-index:89;}
 #fabm.open{display:flex;}
 .fi{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:8px 15px;font-size:13px;font-weight:500;color:var(--ink);box-shadow:var(--sh0);cursor:pointer;transition:all var(--t);animation:fabIn .2s ease;white-space:nowrap;align-self:flex-end;}
 @keyframes fabIn{from{opacity:0;transform:scale(.85) translateY(8px);}}
 .fi:hover{background:var(--surface2);}
 
-/* Pages */
+/* ── Pages ── */
 .page{display:none;animation:fadeUp .22s ease;}
 .page.active{display:block;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
-/* UI Parts */
+/* ── UI components ── */
 .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;}
 .pt{font-family:'Cormorant Garamond',serif;font-size:27px;font-weight:600;line-height:1.1;}
 .ps{font-size:12.5px;color:var(--ink3);margin-top:3px;}
@@ -87,8 +108,10 @@ a{color:var(--green);}
 .bp:hover{background:#333;box-shadow:var(--sh0);}
 .bg{background:transparent;color:var(--ink2);border:1px solid var(--border2);}
 .bg:hover{background:var(--surface2);color:var(--ink);}
-.bd2{background:var(--red-lt);color:var(--red);border:1px solid var(--red-mid);}
-.bd2:hover{background:var(--red-mid);}
+.brd{background:var(--red-lt);color:var(--red);border:1px solid var(--red-mid);}
+.brd:hover{background:var(--red-mid);}
+.bgn{background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid);}
+.bgn:hover{background:var(--green-mid);}
 .sm{padding:5px 11px;font-size:12px;}
 .xs{padding:3px 9px;font-size:11px;}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:100px;font-size:10.5px;font-weight:600;}
@@ -179,18 +202,44 @@ a{color:var(--green);}
 .srcr:last-child{border-bottom:none;}
 .sbar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
 .sbf{height:100%;background:var(--green);border-radius:2px;transition:width .5s ease;}
-/* Sync panel */
-.sync-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:12px;}
-.sync-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.sdot{width:8px;height:8px;border-radius:50%;background:var(--ink3);flex-shrink:0;}
-.sdot.ok{background:var(--green);}
-.sdot.err{background:var(--red);}
-.sdot.ing{background:var(--amber);animation:pulse .8s infinite alternate;}
-@keyframes pulse{to{opacity:.4;}}
-.stxt{font-size:12.5px;color:var(--ink3);}
-.stxt.ok{color:var(--green);}
-.stxt.err{color:var(--red);}
-/* Modal */
+.sec-h{font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);}
+.ctag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);font-size:12px;}
+.dbt{color:var(--ink3);font-size:13px;cursor:pointer;transition:color var(--t);}
+.dbt:hover{color:var(--red);}
+.cscr{overflow-x:auto;margin-bottom:12px;padding-bottom:3px;}
+.chips{display:flex;gap:5px;min-width:max-content;}
+.chip{padding:4px 11px;border-radius:100px;background:var(--surface);border:1px solid var(--border);font-size:12px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all var(--t);white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}
+.chip:hover{border-color:var(--border2);color:var(--ink);background:var(--surface2);}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+/* ── Subscription cards ── */
+.sub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:11px;margin-bottom:14px;}
+.sub-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;transition:box-shadow var(--t),transform var(--t);}
+.sub-card:hover{box-shadow:var(--sh);transform:translateY(-1px);}
+.sub-card.inactive{opacity:.5;}
+.sub-accent{position:absolute;left:0;top:0;bottom:0;width:4px;}
+.sub-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;padding-left:10px;}
+.sub-name{font-size:14.5px;font-weight:700;line-height:1.3;}
+.sub-amount{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;white-space:nowrap;}
+.sub-meta{font-size:11.5px;color:var(--ink3);padding-left:10px;margin-bottom:12px;line-height:1.6;}
+.sub-actions{display:flex;gap:6px;padding-left:10px;flex-wrap:wrap;}
+.reg-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--rxs);font-size:12px;font-weight:600;cursor:pointer;transition:all var(--t);border:1px solid var(--border2);background:var(--surface2);color:var(--ink2);}
+.reg-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
+.reg-btn.done{background:var(--green-lt);color:var(--green);border-color:var(--green-mid);}
+.reg-btn.done:hover{background:var(--green-mid);}
+.gcal-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--rxs);font-size:11.5px;font-weight:500;cursor:pointer;transition:all var(--t);border:1px solid var(--border);background:var(--surface);color:var(--ink3);text-decoration:none;}
+.gcal-btn:hover{background:var(--surface2);color:var(--ink);}
+
+/* ── Schedule list ── */
+.sch-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.sch-item:last-child{border-bottom:none;}
+.sch-day{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;width:36px;text-align:center;flex-shrink:0;color:var(--ink2);}
+.sch-info{flex:1;min-width:0;}
+.sch-name{font-size:13.5px;font-weight:600;}
+.sch-amt{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--ink2);}
+.sch-reg{flex-shrink:0;}
+
+/* ── Modal ── */
 #mov{display:none;position:fixed;inset:0;background:rgba(28,25,23,.38);backdrop-filter:blur(3px);z-index:200;align-items:flex-end;justify-content:center;}
 #mov.open{display:flex;}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:520px;max-height:94vh;overflow-y:auto;padding:20px 20px 26px;box-shadow:0 -8px 32px rgba(28,25,23,.1);animation:slUp .28s cubic-bezier(.32,.72,0,1);}
@@ -200,15 +249,9 @@ a{color:var(--green);}
 .mcl{font-size:19px;color:var(--ink3);cursor:pointer;width:27px;height:27px;display:flex;align-items:center;justify-content:center;border-radius:5px;transition:all var(--t);}
 .mcl:hover{background:var(--surface2);color:var(--ink);}
 .mact{display:flex;gap:8px;margin-top:18px;justify-content:flex-end;}
-.cscr{overflow-x:auto;margin-bottom:12px;padding-bottom:3px;}
-.chips{display:flex;gap:5px;min-width:max-content;}
-.chip{padding:4px 11px;border-radius:100px;background:var(--surface);border:1px solid var(--border);font-size:12px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all var(--t);white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}
-.chip:hover{border-color:var(--border2);color:var(--ink);background:var(--surface2);}
-.chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
-.ctag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);font-size:12px;}
-.dbt{color:var(--ink3);font-size:13px;cursor:pointer;transition:color var(--t);}
-.dbt:hover{color:var(--red);}
-#toasts{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:6px;}
+
+/* ── Toast ── */
+#toasts{position:fixed;top:16px;right:16px;z-index:600;display:flex;flex-direction:column;gap:6px;}
 .toast{background:var(--ink);color:#fff;padding:9px 15px;border-radius:var(--rxs);font-size:13px;font-weight:500;box-shadow:var(--sh);animation:tIn .22s ease;max-width:280px;}
 @keyframes tIn{from{opacity:0;transform:translateX(14px);}}
 .toast.ok{background:var(--green);}
@@ -217,12 +260,12 @@ a{color:var(--green);}
 .eico{font-size:34px;margin-bottom:9px;}
 .emsg{font-size:13.5px;font-weight:500;color:var(--ink2);}
 .esub{font-size:12px;margin-top:4px;color:var(--ink3);}
-.spin{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--ink);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;}
+.spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--ink);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;}
 @keyframes sp{to{transform:rotate(360deg);}}
-.div{height:1px;background:var(--border);margin:12px 0;}
-.sec-h{font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);}
 .info-box{background:var(--amber-lt);border:1px solid var(--amber-mid);border-radius:var(--rxs);padding:12px 14px;font-size:12.5px;line-height:1.7;color:var(--amber);}
 .info-box strong{color:var(--ink);}
+.loading-scr{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:490;}
+
 @media(max-width:767px){
   #sb{display:none!important;}
   #mhd{display:flex;}
@@ -230,18 +273,12 @@ a{color:var(--green);}
   #bnv{display:flex;}
   #cnt{padding:calc(var(--mhh)+14px) 13px 70px;}
   .sr3{gap:7px;}
-  .wg{grid-template-columns:1fr 1fr;gap:9px;}
+  .wg,.sub-grid,.acg,.fls{grid-template-columns:1fr 1fr;}
   .fr2{grid-template-columns:1fr;gap:0;}
   .pt{font-size:23px;}
   .amlg{font-size:32px;}
-  .acg{grid-template-columns:1fr 1fr;}
-  .fls{grid-template-columns:1fr 1fr;}
 }
-@media(max-width:420px){
-  .wg{grid-template-columns:1fr;}
-  .acg{grid-template-columns:1fr;}
-  .fls{grid-template-columns:1fr;}
-}
+@media(max-width:420px){.wg,.sub-grid,.acg,.fls{grid-template-columns:1fr;}}
 @media(min-width:768px){
   #mov{align-items:center;}
   .modal{border-radius:var(--r);animation:mFd .2s ease;}
@@ -251,195 +288,221 @@ a{color:var(--green);}
 </style>
 </head>
 <body>
-<div id="app">
-  <nav id="sb">
-    <div class="sblogo">
-      <div class="logom">M</div>
-      <span class="logot">MoneyLog</span>
-    </div>
-    <div class="sbnav">
-      <div class="nv active" data-page="home"><span class="ni">⊞</span>ホーム</div>
-      <div class="nv" data-page="assets"><span class="ni">◫</span>資産・口座</div>
-      <div class="nv" data-page="income"><span class="ni">↑</span>収入</div>
-      <div class="nv" data-page="expense"><span class="ni">↓</span>支出・経費</div>
-      <div class="nv" data-page="report"><span class="ni">◈</span>レポート</div>
-      <div class="nv" data-page="wishlist"><span class="ni">◇</span>ほしい物</div>
-      <div class="nv" data-page="settings"><span class="ni">◎</span>設定</div>
-    </div>
-    <div class="sbbot" id="sb-sync"></div>
-  </nav>
-  <div id="main">
-    <div id="cnt">
-      <div id="page-home"     class="page active"></div>
-      <div id="page-assets"   class="page"></div>
-      <div id="page-income"   class="page"></div>
-      <div id="page-expense"  class="page"></div>
-      <div id="page-report"   class="page"></div>
-      <div id="page-wishlist" class="page"></div>
-      <div id="page-settings" class="page"></div>
-    </div>
+
+<!-- Loading -->
+<div id="loading-scr" class="loading-scr">
+  <div style="text-align:center">
+    <div class="spin" style="width:28px;height:28px;margin:0 auto 12px;border-top-color:var(--ink);"></div>
+    <div style="font-size:13px;color:var(--ink3);">読み込み中...</div>
   </div>
-  <nav id="bnv">
-    <div class="bni active" data-page="home"><span class="bi">⊞</span>ホーム</div>
-    <div class="bni" data-page="assets"><span class="bi">◫</span>資産</div>
-    <div class="bni" data-page="expense"><span class="bi">↓</span>支出</div>
-    <div class="bni" data-page="report"><span class="bi">◈</span>レポート</div>
-    <div class="bni" data-page="wishlist"><span class="bi">◇</span>ほしい物</div>
-  </nav>
 </div>
-<div id="mhd">
-  <div class="sblogo" style="padding:0;border:none;flex:1;">
-    <div class="logom">M</div><span class="logot">MoneyLog</span>
+
+<!-- Setup screen -->
+<div id="setup-scr" class="fullscr" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">MoneyLog</div>
+    <div class="auth-sub">Firebaseプロジェクトの設定を入力してください</div>
+    <div class="auth-field"><label>API Key</label><input type="text" id="fb-apikey" placeholder="AIzaSy..."></div>
+    <div class="auth-field"><label>Auth Domain</label><input type="text" id="fb-authdomain" placeholder="your-app.firebaseapp.com"></div>
+    <div class="auth-field"><label>Project ID</label><input type="text" id="fb-projectid" placeholder="your-app-12345"></div>
+    <div class="auth-field"><label>App ID</label><input type="text" id="fb-appid" placeholder="1:xxx:web:xxx"></div>
+    <div class="fh" style="margin-top:8px;text-align:left;">Firebaseコンソール → プロジェクト設定 → マイアプリ → SDKの設定と構成</div>
+    <button class="google-btn" onclick="setupFirebase()">設定を保存してログインへ →</button>
   </div>
-  <div class="mhbtn" onclick="nav('settings')">⚙</div>
 </div>
-<div id="fab" onclick="toggleFab()">＋</div>
-<div id="fabm">
-  <div class="fi" onclick="openModal('expense',null)">↓ 支出を追加</div>
-  <div class="fi" onclick="openModal('income',null)">↑ 収入を追加</div>
-  <div class="fi" onclick="openModal('transfer',null)">⇄ 振替・送金</div>
-  <div class="fi" onclick="openModal('wish',null)">◇ ほしい物を追加</div>
+
+<!-- Login screen -->
+<div id="login-scr" class="fullscr" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">MoneyLog</div>
+    <div class="auth-sub">個人の家計・フリーランス収支・資産を<br>シンプルに管理するアプリです</div>
+    <button class="google-btn" onclick="signIn()">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Googleでログイン
+    </button>
+    <div class="auth-divider"></div>
+    <div style="font-size:11.5px;color:var(--ink3);cursor:pointer;text-align:center;" onclick="showScreen('setup')">← Firebase設定を変更</div>
+  </div>
 </div>
-<div id="mov" onclick="ovClick(event)">
-  <div class="modal" id="mini"></div>
+
+<!-- App -->
+<div id="app-scr" style="display:none;flex:1">
+  <div id="app">
+    <nav id="sb">
+      <div class="sblogo"><div class="logom">M</div><span class="logot">MoneyLog</span></div>
+      <div class="sbnav">
+        <div class="nv active" data-page="home"><span class="ni">⊞</span>ホーム</div>
+        <div class="nv" data-page="assets"><span class="ni">◫</span>資産・口座</div>
+        <div class="nv" data-page="income"><span class="ni">↑</span>収入</div>
+        <div class="nv" data-page="expense"><span class="ni">↓</span>支出・経費</div>
+        <div class="nv" data-page="subs"><span class="ni">♻</span>サブスク</div>
+        <div class="nv" data-page="report"><span class="ni">◈</span>レポート</div>
+        <div class="nv" data-page="wishlist"><span class="ni">◇</span>ほしい物</div>
+        <div class="nv" data-page="settings"><span class="ni">◎</span>設定</div>
+      </div>
+      <div class="sbbot" id="sb-user"></div>
+    </nav>
+    <div id="main">
+      <div id="cnt">
+        <div id="page-home"     class="page active"></div>
+        <div id="page-assets"   class="page"></div>
+        <div id="page-income"   class="page"></div>
+        <div id="page-expense"  class="page"></div>
+        <div id="page-subs"     class="page"></div>
+        <div id="page-report"   class="page"></div>
+        <div id="page-wishlist" class="page"></div>
+        <div id="page-settings" class="page"></div>
+      </div>
+    </div>
+    <nav id="bnv">
+      <div class="bni active" data-page="home"><span class="bi">⊞</span>ホーム</div>
+      <div class="bni" data-page="expense"><span class="bi">↓</span>支出</div>
+      <div class="bni" data-page="subs"><span class="bi">♻</span>サブスク</div>
+      <div class="bni" data-page="report"><span class="bi">◈</span>レポート</div>
+      <div class="bni" data-page="wishlist"><span class="bi">◇</span>ほしい物</div>
+    </nav>
+  </div>
+  <div id="mhd">
+    <div class="sblogo" style="padding:0;border:none;flex:1;"><div class="logom">M</div><span class="logot">MoneyLog</span></div>
+    <div class="mhbtn" onclick="nav('settings')">⚙</div>
+  </div>
+  <div id="fab" onclick="toggleFab()">＋</div>
+  <div id="fabm">
+    <div class="fi" onclick="openModal('expense',null)">↓ 支出を追加</div>
+    <div class="fi" onclick="openModal('income',null)">↑ 収入を追加</div>
+    <div class="fi" onclick="openModal('transfer',null)">⇄ 振替・送金</div>
+    <div class="fi" onclick="openModal('sub',null)">♻ サブスクを追加</div>
+    <div class="fi" onclick="openModal('wish',null)">◇ ほしい物を追加</div>
+  </div>
 </div>
+
+<div id="mov" onclick="ovClick(event)"><div class="modal" id="mini"></div></div>
 <div id="toasts"></div>
 
 <script>
 'use strict';
 /* ── Constants ── */
-const ICONS={食費:'🛒',外食:'🍜',交通費:'🚃',住居費:'🏠',光熱費:'💡',通信費:'📱',医療費:'💊',衣類:'👔',娯楽:'🎮',日用品:'🧴',教育:'📚',貯蓄:'🏦','その他支出':'📦',給与:'💼',副業:'🔧',フリーランス:'💻',投資:'📈','その他収入':'💵','通信費(経費)':'📡','交通費(経費)':'🚉','機材・ソフト':'🖥','書籍・資料':'📖',外注費:'🤝',広告費:'📣',会議費:'☕','その他経費':'📋'};
+const ICONS={食費:'🛒',外食:'🍜',交通費:'🚃',住居費:'🏠',光熱費:'💡',通信費:'📱',医療費:'💊',衣類:'👔',娯楽:'🎮',日用品:'🧴',教育:'📚',貯蓄:'🏦','その他支出':'📦',給与:'💼',副業:'🔧',フリーランス:'💻',投資:'📈','その他収入':'💵','通信費(経費)':'📡','交通費(経費)':'🚉','機材・ソフト':'🖥','書籍・資料':'📖',外注費:'🤝',広告費:'📣',会議費:'☕','その他経費':'📋',サブスク:'♻'};
 const ACCT_T={bank:{l:'銀行口座',i:'🏦'},cash:{l:'現金',i:'💴'},ic:{l:'ICカード',i:'🚃'},invest:{l:'投資口座',i:'📈'},credit:{l:'クレジット',i:'💳'},other:{l:'その他',i:'💼'}};
 const COLORS=['#2C5F3A','#2151A0','#8A6120','#A0291A','#5B4F9A','#1A6B6B','#555555','#7A3B1E'];
 const DEF_EC=['食費','外食','交通費','住居費','光熱費','通信費','医療費','衣類','娯楽','日用品','教育','貯蓄','その他支出','通信費(経費)','交通費(経費)','機材・ソフト','書籍・資料','外注費','広告費','会議費','その他経費'];
 const DEF_IC=['給与','副業','フリーランス','投資','その他収入'];
-const LSKEY='ml4';
+const LSKEY='ml4';const FBKEY='ml_fb';
 
 /* ── State ── */
 let S={
   page:'home',vm:new Date(),rp:'month',repTab:'summary',
   fabOpen:false,ef:'all',eKei:false,ifree:false,
-  sync:{status:'idle',lastAt:null,pushing:false},
-  data:{accounts:[],incomes:[],expenses:[],transfers:[],wishlist:[],ec:[...DEF_EC],ic:[...DEF_IC],
-        cfg:{binId:'',binKey:''}}
+  data:{accounts:[],incomes:[],expenses:[],transfers:[],wishlist:[],subscriptions:[],ec:[...DEF_EC],ic:[...DEF_IC]}
 };
+let fbApp=null,fbAuth=null,fbDb=null,currentUser=null,saveTimer=null;
 
-/* ── Local storage ── */
-function saveLocal(){localStorage.setItem(LSKEY,JSON.stringify(S.data));}
-function loadLocal(){
+/* ── Firebase ── */
+function initFirebase(cfg){
+  if(fbApp)return;
   try{
-    const r=localStorage.getItem(LSKEY);
-    if(!r)return;
-    const p=JSON.parse(r);
-    S.data={...S.data,...p};
-    if(!S.data.ec?.length)S.data.ec=[...DEF_EC];
-    if(!S.data.ic?.length)S.data.ic=[...DEF_IC];
-    if(!S.data.cfg)S.data.cfg={binId:'',binKey:''};
-    // migrate old cfg key names
-    if(S.data.cfg.gistId!==undefined){
-      delete S.data.cfg.gistId;delete S.data.cfg.token;delete S.data.cfg.akey;}
-    if(!S.data.accounts)S.data.accounts=[];
-    if(!S.data.transfers)S.data.transfers=[];
-  }catch(e){}
-}
-
-/* ── JSONBin sync ── */
-const JBIN='https://api.jsonbin.io/v3';
-let pushTimer=null;
-
-function schedulePush(){
-  const{binId,binKey}=S.data.cfg;
-  if(!binId||!binKey)return;
-  clearTimeout(pushTimer);
-  pushTimer=setTimeout(()=>pushBin(),5000);
-}
-
-async function pullBin(){
-  const{binId,binKey}=S.data.cfg;
-  if(!binId||!binKey){toast('JSONBinの設定が必要です','err');return;}
-  setSyncUI('ing');
-  try{
-    const r=await fetch(`${JBIN}/b/${binId}/latest`,{
-      headers:{'X-Master-Key':binKey}
+    fbApp=firebase.initializeApp(cfg);
+    fbAuth=firebase.auth();
+    fbDb=firebase.firestore();
+    fbAuth.onAuthStateChanged(async user=>{
+      currentUser=user;
+      if(user){
+        await loadFromFirestore();
+        renderUserBadge();
+        showScreen('app');
+        renderPage();
+      }else{
+        showScreen('login');
+      }
     });
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const j=await r.json();
-    const d=j.record||{};
-    if(d.incomes)  S.data.incomes  =merge(S.data.incomes,  d.incomes);
-    if(d.expenses) S.data.expenses =merge(S.data.expenses, d.expenses);
-    if(d.wishlist) S.data.wishlist =merge(S.data.wishlist, d.wishlist);
-    if(d.accounts) S.data.accounts =merge(S.data.accounts, d.accounts);
-    if(d.transfers)S.data.transfers=merge(S.data.transfers,d.transfers);
-    if(d.ec)S.data.ec=d.ec;
-    if(d.ic)S.data.ic=d.ic;
-    saveLocal();setSyncUI('ok');renderSyncUI();toast('同期しました','ok');renderPage();
-  }catch(e){setSyncUI('err',e.message);toast('取得エラー: '+e.message,'err');}
+  }catch(e){toast('Firebase初期化エラー: '+e.message,'err');showScreen('setup');}
 }
 
-async function pushBin(){
-  const{binId,binKey}=S.data.cfg;
-  if(!binId||!binKey)return;
-  setSyncUI('ing');
+function setupFirebase(){
+  const apiKey=gv('fb-apikey').trim(),authDomain=gv('fb-authdomain').trim(),projectId=gv('fb-projectid').trim(),appId=gv('fb-appid').trim();
+  if(!apiKey||!authDomain||!projectId||!appId){toast('すべての項目を入力してください','err');return;}
+  const cfg={apiKey,authDomain,projectId,appId};
+  localStorage.setItem(FBKEY,JSON.stringify(cfg));
+  initFirebase(cfg);
+}
+
+async function signIn(){
+  if(!fbAuth){toast('Firebase未設定です','err');return;}
   try{
-    const payload={
-      incomes:S.data.incomes,expenses:S.data.expenses,
-      wishlist:S.data.wishlist,accounts:S.data.accounts,
-      transfers:S.data.transfers,ec:S.data.ec,ic:S.data.ic,
-      savedAt:new Date().toISOString()
-    };
-    const r=await fetch(`${JBIN}/b/${binId}`,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json','X-Master-Key':binKey},
-      body:JSON.stringify(payload)
-    });
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    S.sync.lastAt=new Date();
-    setSyncUI('ok');renderSyncUI();
-  }catch(e){setSyncUI('err',e.message);}
+    const provider=new firebase.auth.GoogleAuthProvider();
+    await fbAuth.signInWithPopup(provider);
+  }catch(e){toast('ログインエラー: '+e.message,'err');}
 }
 
-async function createBin(){
-  const{binKey}=S.data.cfg;
-  if(!binKey){toast('Master Keyを先に入力してください','err');return;}
-  setSyncUI('ing');
+async function signOut(){
+  if(!confirm('ログアウトしますか？'))return;
+  await fbAuth.signOut();
+  showScreen('login');
+}
+
+/* ── Firestore ── */
+function userDoc(){return fbDb.collection('users').doc(currentUser.uid).collection('data').doc('main');}
+
+async function loadFromFirestore(){
   try{
-    const r=await fetch(`${JBIN}/b`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Master-Key':binKey,'X-Bin-Name':'MoneyLog'},
-      body:JSON.stringify({init:true})
-    });
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const j=await r.json();
-    S.data.cfg.binId=j.metadata.id;
-    saveLocal();setSyncUI('ok');renderSyncUI();toast('Bin作成しました。IDを保存してください','ok');
-    if(S.page==='settings')rSets();
-  }catch(e){setSyncUI('err',e.message);toast('作成エラー: '+e.message,'err');}
+    const doc=await userDoc().get();
+    if(doc.exists){
+      const d=doc.data();
+      S.data={...S.data,...d};
+    }else{
+      // Migrate from localStorage
+      const local=localStorage.getItem(LSKEY);
+      if(local){
+        const p=JSON.parse(local);
+        S.data={...S.data,...p};
+        toast('ローカルデータをGoogleアカウントに移行しました','ok');
+        await persistToFirestore();
+      }
+    }
+    ensureDefaults();
+  }catch(e){toast('データ読み込みエラー: '+e.message,'err');ensureDefaults();}
 }
 
-function merge(loc,rem){
-  if(!Array.isArray(rem))return loc;
-  const m={};
-  [...loc,...rem].forEach(x=>{
-    if(x&&x.id&&(!m[x.id]||(x.updatedAt||'')>(m[x.id].updatedAt||'')))m[x.id]=x;
-  });
-  return Object.values(m).filter(x=>!x._del);
+function ensureDefaults(){
+  if(!S.data.ec?.length)S.data.ec=[...DEF_EC];
+  if(!S.data.ic?.length)S.data.ic=[...DEF_IC];
+  if(!S.data.accounts)S.data.accounts=[];
+  if(!S.data.transfers)S.data.transfers=[];
+  if(!S.data.subscriptions)S.data.subscriptions=[];
+  if(!S.data.wishlist)S.data.wishlist=[];
+  if(!S.data.incomes)S.data.incomes=[];
+  if(!S.data.expenses)S.data.expenses=[];
 }
 
-function save(){saveLocal();schedulePush();}
+async function persistToFirestore(){
+  if(!fbDb||!currentUser)return;
+  try{await userDoc().set(S.data);}
+  catch(e){toast('保存エラー: '+e.message,'err');}
+}
 
-/* ── Sync UI ── */
-function setSyncUI(s,msg=''){S.sync.status=s;S.sync.msg=msg;}
-function renderSyncUI(){
-  const el=document.getElementById('sb-sync');
-  if(!el)return;
-  const{status,lastAt,msg}=S.sync;
-  const{binId}=S.data.cfg;
-  const dotC=status==='ok'?'ok':status==='err'?'err':status==='ing'?'ing':'';
-  const txt=status==='ok'?`同期済み${lastAt?' '+lastAt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):''}`:
-    status==='err'?`エラー: ${msg||''}`:status==='ing'?'同期中…':
-    binId?'未同期':'未設定';
-  const col=status==='ok'?'ok':status==='err'?'err':'';
-  el.innerHTML=`<div style="display:flex;align-items:center;gap:6px;"><div class="sdot ${dotC}"></div><span class="stxt ${col}" style="font-size:11.5px;">${txt}</span></div>`;
+function save(){
+  localStorage.setItem(LSKEY,JSON.stringify(S.data));
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>persistToFirestore(),1500);
+}
+
+/* ── Screen control ── */
+function showScreen(s){
+  document.getElementById('loading-scr').style.display='none';
+  document.getElementById('setup-scr').style.display=s==='setup'?'flex':'none';
+  document.getElementById('login-scr').style.display=s==='login'?'flex':'none';
+  document.getElementById('app-scr').style.display=s==='app'?'flex':'none';
+  if(s==='app'){document.getElementById('app-scr').style.flexDirection='column';}
+}
+
+function renderUserBadge(){
+  const el=document.getElementById('sb-user');
+  if(!el||!currentUser)return;
+  el.innerHTML=`<div class="user-badge">
+    ${currentUser.photoURL?`<img class="user-avatar" src="${currentUser.photoURL}" referrerpolicy="no-referrer">`:''}
+    <span class="user-name">${currentUser.displayName||currentUser.email}</span>
+    <span class="signout-btn" onclick="signOut()">ログアウト</span>
+  </div>`;
 }
 
 /* ── Nav ── */
@@ -453,18 +516,14 @@ function nav(p){
 }
 function renderPage(){
   switch(S.page){
-    case'home':    rHome();break;
-    case'assets':  rAssets();break;
-    case'income':  rIncome();break;
-    case'expense': rExpense();break;
-    case'report':  rReport();break;
-    case'wishlist':rWish();break;
-    case'settings':rSets();break;
+    case'home':rHome();break;case'assets':rAssets();break;
+    case'income':rIncome();break;case'expense':rExpense();break;
+    case'subs':rSubs();break;case'report':rReport();break;
+    case'wishlist':rWish();break;case'settings':rSets();break;
   }
-  renderSyncUI();
 }
 
-/* ── Utilities ── */
+/* ── Utils ── */
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function yen(n){return'¥'+Math.abs(Math.round(n)).toLocaleString('ja-JP');}
 function today(){const d=new Date();return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
@@ -475,12 +534,7 @@ function fmt(d){return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate()
 function inR(ds,s,e){return ds>=s&&ds<=e;}
 function fd(ds){const d=new Date(ds+'T00:00:00');return`${d.getMonth()+1}/${d.getDate()}`;}
 function dlTxt(dl){if(!dl)return null;const df=Math.ceil((new Date(dl)-new Date())/86400000);if(df<0)return'期限切れ';if(df===0)return'今日';if(df<=7)return`残${df}日`;if(df<=30)return`残${Math.ceil(df/7)}週`;return`残${Math.ceil(df/30)}ヶ月`;}
-function grade(r){
-  if(r>=30)return{g:'S',c:'gS',msg:'素晴らしい貯蓄率です！',col:'var(--ink)'};
-  if(r>=20)return{g:'A',c:'gA',msg:'良好な管理ができています',col:'var(--green)'};
-  if(r>=10)return{g:'B',c:'gB',msg:'まずまず。もう少し頑張ろう',col:'var(--blue)'};
-  if(r>=0) return{g:'C',c:'gC',msg:'収支トントン。節約を意識しよう',col:'var(--amber)'};
-  return{g:'D',c:'gD',msg:'赤字です。支出を見直しましょう',col:'var(--red)'};}
+function grade(r){if(r>=30)return{g:'S',c:'gS',msg:'素晴らしい貯蓄率です！',col:'var(--ink)'};if(r>=20)return{g:'A',c:'gA',msg:'良好な管理ができています',col:'var(--green)'};if(r>=10)return{g:'B',c:'gB',msg:'まずまず。もう少し頑張ろう',col:'var(--blue)'};if(r>=0)return{g:'C',c:'gC',msg:'収支トントン。節約を意識しよう',col:'var(--amber)'};return{g:'D',c:'gD',msg:'赤字です。支出を見直しましょう',col:'var(--red)'};}
 function ci(c){return ICONS[c]||'📌';}
 function emp(ic,msg,sub=''){return`<div class="emp"><div class="eico">${ic}</div><div class="emsg">${msg}</div>${sub?`<div class="esub">${sub}</div>`:''}</div>`;}
 function gv(id){return document.getElementById(id)?.value||'';}
@@ -488,7 +542,7 @@ function gb(id){return!!document.getElementById(id)?.checked;}
 function nowIso(){return new Date().toISOString();}
 function aIcon(t){return ACCT_T[t]?.i||'💼';}
 function aLabel(t){return ACCT_T[t]?.l||'その他';}
-function aName(id){return S.data.accounts.find(x=>x.id===id)?.name||'−';}
+function aName(id){return S.data.accounts.find(x=>x.id===id)?.name||'';}
 function acctBal(a){
   const id=a.id;
   const inc=S.data.incomes.filter(x=>x.accountId===id).reduce((s,x)=>s+x.amount,0);
@@ -499,6 +553,20 @@ function acctBal(a){
 }
 function netWorth(){return S.data.accounts.reduce((s,a)=>s+acctBal(a),0);}
 function acctOpts(sel){return'<option value="">− 未設定 −</option>'+S.data.accounts.map(a=>`<option value="${a.id}"${sel===a.id?' selected':''}>${aIcon(a.type)} ${a.name}</option>`).join('');}
+function monthKey(){return`${S.vm.getFullYear()}-${p2(S.vm.getMonth()+1)}`;}
+function subMonthly(sub){return sub.cycle==='yearly'?Math.round(sub.amount/12):sub.amount;}
+function isSchThisMonth(sub){if(!sub.active)return false;if(sub.cycle==='monthly')return true;return(sub.payMonth||1)===S.vm.getMonth()+1;}
+function gcalUrl(sub){
+  const y=S.vm.getFullYear(),m=S.vm.getMonth()+1;
+  const day=Math.min(sub.payDay||1,28);
+  const pm=sub.payMonth||m;
+  const ds=sub.cycle==='monthly'?`${y}${p2(m)}${p2(day)}`:`${y}${p2(pm)}${p2(day)}`;
+  const de=sub.cycle==='monthly'?`${y}${p2(m)}${p2(Math.min(day+1,29))}`:`${y}${p2(pm)}${p2(Math.min(day+1,29))}`;
+  const recur=sub.cycle==='monthly'?`RRULE:FREQ=MONTHLY;BYMONTHDAY=${sub.payDay}`:`RRULE:FREQ=YEARLY`;
+  const t=encodeURIComponent(sub.name);
+  const det=encodeURIComponent(`${sub.cycle==='monthly'?'月額':'年額'} ${yen(sub.amount)}`);
+  return`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${t}&details=${det}&dates=${ds}/${de}&recur=${encodeURIComponent(recur)}`;
+}
 
 /* ── Toast ── */
 function toast(msg,type=''){const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;document.getElementById('toasts').appendChild(el);setTimeout(()=>{el.style.cssText='opacity:0;transform:translateX(14px);transition:all .25s';setTimeout(()=>el.remove(),250);},2800);}
@@ -509,30 +577,29 @@ function closeFab(){S.fabOpen=false;const f=document.getElementById('fab'),m=doc
 document.addEventListener('click',e=>{if(S.fabOpen&&!e.target.closest('#fab')&&!e.target.closest('#fabm'))closeFab();});
 
 /* ── Modal ── */
-// editingId stores the ID being edited to avoid string-in-HTML issues
 let editingId=null;
 function openModal(type,id){
-  closeFab();
-  editingId=id||null;
+  closeFab();editingId=id||null;
   document.getElementById('mov').classList.add('open');
   const inn=document.getElementById('mini');
-  if(type==='expense') inn.innerHTML=mExp(editingId);
-  else if(type==='income')   inn.innerHTML=mInc(editingId);
-  else if(type==='wish')     inn.innerHTML=mWish(editingId);
-  else if(type==='acct')     inn.innerHTML=mAcct(editingId);
-  else if(type==='transfer') inn.innerHTML=mXfr(editingId);
+  if(type==='expense')inn.innerHTML=mExp(editingId);
+  else if(type==='income')inn.innerHTML=mInc(editingId);
+  else if(type==='wish')inn.innerHTML=mWish(editingId);
+  else if(type==='acct')inn.innerHTML=mAcct(editingId);
+  else if(type==='transfer')inn.innerHTML=mXfr(editingId);
+  else if(type==='sub')inn.innerHTML=mSub(editingId);
 }
 function closeModal(){document.getElementById('mov').classList.remove('open');editingId=null;}
 function ovClick(e){if(e.target===document.getElementById('mov'))closeModal();}
 
-/* ── tx row ── */
+/* ── tx row with delegation ── */
 function txRow(tx){
   const isI=tx.type==='income',isT=tx.type==='transfer';
   const cat=tx.category||'';
   const dotC=isI?'tdi':isT?'tdt':'tde';
   const amtC=isI?'pos':isT?'':'neg';
   const sign=isI?'+':isT?'⇄':'−';
-  const name=isT?`${aName(tx.fromId)} → ${aName(tx.toId)}`:tx.memo||cat;
+  const name=isT?`${aName(tx.fromId)||'−'} → ${aName(tx.toId)||'−'}`:tx.memo||cat;
   const meta=isT?`${fd(tx.date)} · 振替`:`${fd(tx.date)} · ${cat}${tx.accountId?' · '+aName(tx.accountId):''}`;
   const kb=tx.isKeiei?'<span class="badge bpu" style="font-size:9px;padding:1px 5px;margin-left:3px;">経費</span>':'';
   const fb=tx.isFreelance?'<span class="badge btl" style="font-size:9px;padding:1px 5px;margin-left:3px;">FL</span>':'';
@@ -544,10 +611,13 @@ function txRow(tx){
     <div class="tam ${amtC}">${isT?yen(tx.amount):sign+yen(tx.amount)}</div>
   </div>`;
 }
-// delegated click on tx rows
 document.addEventListener('click',e=>{
-  const row=e.target.closest('.txi[data-mtype]');
-  if(row){openModal(row.dataset.mtype,row.dataset.id||null);}
+  const r=e.target.closest('.txi[data-mtype]');
+  if(r)openModal(r.dataset.mtype,r.dataset.id||null);
+  const w=e.target.closest('.wc[data-id]');
+  if(w)openModal('wish',w.dataset.id);
+  const ac=e.target.closest('.acc[data-id]');
+  if(ac)openModal('acct',ac.dataset.id);
 });
 
 /* ── HOME ── */
@@ -558,28 +628,17 @@ function rHome(){
   const tI=inc.reduce((s,x)=>s+x.amount,0),tE=exp.reduce((s,x)=>s+x.amount,0),bal=tI-tE;
   const rate=tI>0?Math.round(bal/tI*100):0;const g=grade(rate);
   const nw=netWorth();
-  const all=[
-    ...inc.map(x=>({...x,type:'income'})),
-    ...exp.map(x=>({...x,type:'expense'})),
-    ...S.data.transfers.filter(x=>inR(x.date,rng.s,rng.e)).map(x=>({...x,type:'transfer'}))
-  ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
+  const all=[...inc.map(x=>({...x,type:'income'})),...exp.map(x=>({...x,type:'expense'})),...S.data.transfers.filter(x=>inR(x.date,rng.s,rng.e)).map(x=>({...x,type:'transfer'}))].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
   const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
   document.getElementById('page-home').innerHTML=`
-    <div class="ph">
-      <div><div class="pt">ダッシュボード</div><div class="ps">${ml}</div></div>
-      <div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
-    </div>
-    ${S.data.accounts.length>0?`<div class="nwb">
-      <div class="slb">総資産</div>
-      <div class="amlg ${nw>=0?'pos':'neg'}" style="margin:5px 0 11px;">${yen(nw)}</div>
-      <div style="display:flex;gap:7px;flex-wrap:wrap;">${S.data.accounts.map(a=>{const b=acctBal(a);return`<div style="display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:3px 11px;font-size:12px;"><span>${aIcon(a.type)}</span><span style="font-weight:500;">${a.name}</span><span style="font-family:'DM Mono',monospace;color:${b>=0?'var(--green)':'var(--red)'};">${yen(b)}</span></div>`;}).join('')}</div>
-    </div>`:''}
-    <div class="card" style="padding:20px 22px;">
-      <div class="slb">今月の収支</div>
+    <div class="ph"><div><div class="pt">ダッシュボード</div><div class="ps">${ml}</div></div>
+      <div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div></div>
+    ${S.data.accounts.length>0?`<div class="nwb"><div class="slb">総資産</div><div class="amlg ${nw>=0?'pos':'neg'}" style="margin:5px 0 11px;">${yen(nw)}</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">${S.data.accounts.map(a=>{const b=acctBal(a);return`<div style="display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:3px 11px;font-size:12px;"><span>${aIcon(a.type)}</span><span style="font-weight:500;">${a.name}</span><span style="font-family:'DM Mono',monospace;color:${b>=0?'var(--green)':'var(--red)'};">${yen(b)}</span></div>`;}).join('')}</div></div>`:''}
+    <div class="card" style="padding:20px 22px;"><div class="slb">今月の収支</div>
       <div class="amlg ${bal>=0?'pos':'neg'}" style="margin:6px 0 10px;">${yen(bal)}</div>
       <div style="font-size:12px;color:var(--ink3);margin-bottom:5px;">貯蓄率 <strong style="color:${g.col}">${rate}%</strong></div>
-      <div class="pt2"><div class="pf" style="width:${Math.max(0,Math.min(100,rate))}%;background:${bal>=0?'var(--green)':'var(--red)'}"></div></div>
-    </div>
+      <div class="pt2"><div class="pf" style="width:${Math.max(0,Math.min(100,rate))}%;background:${bal>=0?'var(--green)':'var(--red)'}"></div></div></div>
     <div class="sr3">
       <div class="sbox si"><div class="slb">収入</div><div class="svl pos">${yen(tI)}</div></div>
       <div class="sbox se"><div class="slb">支出</div><div class="svl neg">${yen(tE)}</div></div>
@@ -601,22 +660,14 @@ function rAssets(){
   const nw=netWorth();
   const xfrs=S.data.transfers.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
   document.getElementById('page-assets').innerHTML=`
-    <div class="ph">
-      <div><div class="pt">資産・口座</div><div class="ps">総資産 ${yen(nw)}</div></div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn bg sm" onclick="openModal('transfer',null)">⇄ 振替</button>
-        <button class="btn bp sm" onclick="openModal('acct',null)">＋ 追加</button>
-      </div>
-    </div>
+    <div class="ph"><div><div class="pt">資産・口座</div><div class="ps">総資産 ${yen(nw)}</div></div>
+      <div style="display:flex;gap:8px;"><button class="btn bg sm" onclick="openModal('transfer',null)">⇄ 振替</button><button class="btn bp sm" onclick="openModal('acct',null)">＋ 追加</button></div></div>
     <div class="nwb"><div class="slb">総資産</div><div class="amlg ${nw>=0?'pos':'neg'}" style="margin-top:5px;">${yen(nw)}</div></div>
     ${S.data.accounts.length===0?emp('◫','口座がありません','「＋ 追加」から設定してください'):`
-    <div class="acg">${S.data.accounts.map(a=>{const b=acctBal(a);return`<div class="acc" data-mtype="acct" data-id="${a.id}">
-      <div class="ach">
-        <div class="acico" style="background:${a.color||'#eee'}20;border:1px solid ${a.color||'#ccc'}40;">${aIcon(a.type)}</div>
-        <div><div class="acn">${a.name}</div><div class="act">${aLabel(a.type)}</div></div>
-      </div>
-      <div class="acbal ${b>=0?'pos':'neg'}">${yen(b)}</div>
-      <div class="acini">初期残高: ${yen(a.initialBalance||0)}</div>
+    <div class="acg">${S.data.accounts.map(a=>{const b=acctBal(a);return`<div class="acc" data-id="${a.id}">
+      <div class="ach"><div class="acico" style="background:${a.color||'#eee'}20;border:1px solid ${a.color||'#ccc'}40;">${aIcon(a.type)}</div>
+      <div><div class="acn">${a.name}</div><div class="act">${aLabel(a.type)}</div></div></div>
+      <div class="acbal ${b>=0?'pos':'neg'}">${yen(b)}</div><div class="acini">初期残高: ${yen(a.initialBalance||0)}</div>
     </div>`;}).join('')}</div>`}
     ${xfrs.length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">最近の振替</div><div class="txl">${xfrs.map(x=>txRow({...x,type:'transfer'})).join('')}</div></div>`:''}`;
 }
@@ -632,13 +683,10 @@ function rIncome(){
   const byC={};items.forEach(x=>{byC[x.category]=(byC[x.category]||0)+x.amount;});
   const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
   document.getElementById('page-income').innerHTML=`
-    <div class="ph">
-      <div><div class="pt">収入</div><div class="ps">${ml}</div></div>
+    <div class="ph"><div><div class="pt">収入</div><div class="ps">${ml}</div></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
-        <button class="btn bp sm" onclick="openModal('income',null)">＋ 追加</button>
-      </div>
-    </div>
+        <button class="btn bp sm" onclick="openModal('income',null)">＋ 追加</button></div></div>
     <div class="sr3">
       <div class="sbox si"><div class="slb">合計収入</div><div class="svl pos">${yen(allT)}</div></div>
       <div class="sbox st"><div class="slb">フリーランス</div><div class="svl" style="color:var(--teal)">${yen(flT)}</div></div>
@@ -649,8 +697,7 @@ function rIncome(){
       <div class="chip ${S.ifree?'on':''}" onclick="S.ifree=true;rIncome()">フリーランスのみ</div>
     </div>
     ${Object.keys(byC).length>0?`<div class="card">${Object.entries(byC).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`
-      <div class="srcr">
-        <div class="tico" style="width:29px;height:29px;font-size:12px;">${ci(c)}</div>
+      <div class="srcr"><div class="tico" style="width:29px;height:29px;font-size:12px;">${ci(c)}</div>
         <div style="flex:1;min-width:0;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:13px;font-weight:500;">${c}</span><span style="font-family:'DM Mono',monospace;font-size:12.5px;color:var(--green)">${yen(a)}</span></div>
         <div class="sbar"><div class="sbf" style="width:${allT>0?Math.round(a/allT*100):0}%"></div></div></div>
         <span style="font-size:10.5px;color:var(--ink3);min-width:28px;text-align:right">${allT>0?Math.round(a/allT*100):0}%</span>
@@ -670,13 +717,10 @@ function rExpense(){
   items.sort((a,b)=>b.date.localeCompare(a.date));
   const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
   document.getElementById('page-expense').innerHTML=`
-    <div class="ph">
-      <div><div class="pt">支出・経費</div><div class="ps">${ml}</div></div>
+    <div class="ph"><div><div class="pt">支出・経費</div><div class="ps">${ml}</div></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
-        <button class="btn bp sm" onclick="openModal('expense',null)">＋ 追加</button>
-      </div>
-    </div>
+        <button class="btn bp sm" onclick="openModal('expense',null)">＋ 追加</button></div></div>
     <div class="sr3">
       <div class="sbox se"><div class="slb">合計支出</div><div class="svl neg">${yen(allT)}</div></div>
       <div class="sbox sa"><div class="slb">経費計上</div><div class="svl" style="color:var(--purple)">${yen(kT)}</div></div>
@@ -693,6 +737,114 @@ function rExpense(){
     <div class="card"><div class="txl">${items.length===0?emp('↓','支出がありません'):items.map(x=>txRow({...x,type:'expense'})).join('')}</div></div>`;
 }
 function setEF(c){S.ef=c;rExpense();}
+
+/* ── SUBSCRIPTIONS ── */
+function rSubs(){
+  const subs=S.data.subscriptions.filter(x=>!x._del);
+  const active=subs.filter(x=>x.active!==false);
+  const mk=monthKey();
+  const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
+  const monthlyTotal=active.reduce((s,x)=>s+subMonthly(x),0);
+  const yearlyTotal=active.reduce((s,x)=>s+(x.cycle==='yearly'?x.amount:x.amount*12),0);
+  const scheduled=active.filter(isSchThisMonth).sort((a,b)=>(a.payDay||1)-(b.payDay||1));
+  const registeredCount=scheduled.filter(x=>x.registered?.[mk]).length;
+
+  document.getElementById('page-subs').innerHTML=`
+    <div class="ph">
+      <div><div class="pt">サブスク管理</div><div class="ps">${ml}</div></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
+        <button class="btn bp sm" onclick="openModal('sub',null)">＋ 追加</button>
+      </div>
+    </div>
+
+    <div class="sr3">
+      <div class="sbox se"><div class="slb">月額合計</div><div class="svl neg">${yen(monthlyTotal)}</div></div>
+      <div class="sbox sa"><div class="slb">年間換算</div><div class="svl" style="color:var(--purple)">${yen(yearlyTotal)}</div></div>
+      <div class="sbox" style="border-left:2px solid var(--teal)"><div class="slb">今月登録</div><div class="svl" style="color:var(--teal)">${registeredCount}/${scheduled.length}件</div></div>
+    </div>
+
+    ${scheduled.length>0?`
+    <div class="card">
+      <div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">${S.vm.getMonth()+1}月の支払いスケジュール</div>
+      ${scheduled.map(sub=>{
+        const isReg=!!(sub.registered?.[mk]);
+        const expAmt=sub.cycle==='yearly'?`${yen(sub.amount)}（年額）`:yen(sub.amount);
+        return`<div class="sch-item">
+          <div class="sch-day">${sub.payDay||'−'}</div>
+          <div class="sch-info">
+            <div class="sch-name">${sub.name}</div>
+            <div class="sch-amt">${expAmt}${sub.accountId?' · '+aName(sub.accountId):''}</div>
+          </div>
+          <div class="sch-reg">
+            ${isReg
+              ?`<button class="reg-btn done" onclick="unregSub('${sub.id}')">✓ 登録済み | 取消</button>`
+              :`<button class="reg-btn" onclick="regSub('${sub.id}')">今月分を登録</button>`
+            }
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`:''}
+
+    ${subs.length===0?emp('♻','サブスクがありません','「＋ 追加」から定期支払いを登録しましょう'):`
+    <div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">登録済みサービス（${subs.length}件）</div>
+    <div class="sub-grid">${subs.map(subCard).join('')}</div>`}
+  `;
+}
+
+function subCard(sub){
+  const mk=monthKey();
+  const isReg=!!(sub.registered?.[mk]);
+  const cyc=sub.cycle==='yearly'?`年額 ${yen(sub.amount)}（月換算 ${yen(Math.round(sub.amount/12))}）`:`月額 ${yen(sub.amount)}`;
+  const acct=sub.accountId?aName(sub.accountId):'';
+  const metaParts=[cyc,`毎月${sub.payDay||'−'}日`,sub.category,acct].filter(Boolean);
+  const schd=isSchThisMonth(sub);
+  return`<div class="sub-card ${sub.active===false?'inactive':''}" onclick="openModal('sub','${sub.id}')">
+    <div class="sub-accent" style="background:${sub.color||'#5B4F9A'}"></div>
+    <div class="sub-head">
+      <div class="sub-name">${sub.name}</div>
+    </div>
+    <div class="sub-meta">${metaParts.join(' · ')}</div>
+    <div class="sub-actions" onclick="event.stopPropagation()">
+      ${schd?(isReg
+        ?`<button class="reg-btn done" onclick="unregSub('${sub.id}')">✓ 登録済み</button>`
+        :`<button class="reg-btn" onclick="regSub('${sub.id}')">今月分を登録</button>`
+      ):''}
+      <a class="gcal-btn" href="${gcalUrl(sub)}" target="_blank">📅 Gカレンダー</a>
+      ${sub.active===false?'<span class="badge bl">停止中</span>':''}
+    </div>
+  </div>`;
+}
+
+function regSub(subId){
+  const sub=S.data.subscriptions.find(x=>x.id===subId);
+  if(!sub)return;
+  const mk=monthKey();
+  if(sub.registered?.[mk]){toast('今月はすでに登録済みです','err');return;}
+  const expId=uid();
+  const y=S.vm.getFullYear(),m=S.vm.getMonth()+1;
+  const day=Math.min(sub.payDay||1,new Date(y,m,0).getDate());
+  const date=`${y}-${p2(m)}-${p2(day)}`;
+  const n=nowIso();
+  S.data.expenses.push({id:expId,date,amount:sub.amount,category:sub.category||'その他支出',accountId:sub.accountId||'',memo:sub.name,detail:'サブスク自動登録',isKeiei:false,createdAt:n,updatedAt:n});
+  if(!sub.registered)sub.registered={};
+  sub.registered[mk]=expId;
+  sub.updatedAt=n;
+  save();toast(`${sub.name}を${S.vm.getMonth()+1}月の支出に登録しました`,'ok');rSubs();
+}
+
+function unregSub(subId){
+  const sub=S.data.subscriptions.find(x=>x.id===subId);
+  if(!sub)return;
+  const mk=monthKey();
+  const expId=sub.registered?.[mk];
+  if(!expId){toast('登録データが見つかりません','err');return;}
+  if(!confirm('今月分の登録を取り消しますか？支出からも削除されます。'))return;
+  S.data.expenses=S.data.expenses.filter(x=>x.id!==expId);
+  delete sub.registered[mk];
+  sub.updatedAt=nowIso();
+  save();toast('登録を取り消しました');rSubs();
+}
 
 /* ── REPORT ── */
 let bCh=null,pCh=null;
@@ -713,8 +865,7 @@ function rReport(){
   const byKC={};exp.filter(x=>x.isKeiei).forEach(x=>{byKC[x.category]=(byKC[x.category]||0)+x.amount;});
   const lbl=S.rp==='month'?`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`:`${fd(rng.s)} 〜 ${fd(rng.e)}`;
   document.getElementById('page-report').innerHTML=`
-    <div class="ph">
-      <div><div class="pt">レポート</div><div class="ps">${lbl}</div></div>
+    <div class="ph"><div><div class="pt">レポート</div><div class="ps">${lbl}</div></div>
       ${S.rp==='month'?`<div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>`:''}
     </div>
     <div style="display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap;">
@@ -730,8 +881,8 @@ function rReport(){
           <div style="width:125px;flex-shrink:0;"><div class="chwrap" style="max-width:125px"><canvas id="pc"></canvas></div></div>
           <div style="flex:1;min-width:140px;">${ce.map(([c,a])=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);"><div class="tico" style="width:25px;height:25px;font-size:12px;border-radius:5px;">${ci(c)}</div><div style="flex:1;font-size:12px;">${c}</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">${yen(a)}</div><div style="font-size:10px;color:var(--ink3);min-width:24px;text-align:right">${tE>0?Math.round(a/tE*100):0}%</div></div>`).join('')}</div>
         </div></div>`:''}
-      ${exp.length===0&&inc.length===0?emp('◈','この期間の記録がありません'):''}`
-    :tab==='freelance'?`
+      ${exp.length===0&&inc.length===0?emp('◈','この期間の記録がありません'):''}`:
+    tab==='freelance'?`
       <div class="fls">
         <div class="flb" style="border-left:2px solid var(--teal)"><div class="fll">FL収入</div><div class="flv" style="color:var(--teal)">${yen(flI)}</div></div>
         <div class="flb" style="border-left:2px solid var(--purple)"><div class="fll">経費合計</div><div class="flv" style="color:var(--purple)">${yen(kE)}</div></div>
@@ -740,7 +891,7 @@ function rReport(){
       </div>
       ${Object.keys(byClient).length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">クライアント別</div>${Object.entries(byClient).sort((a,b)=>b[1]-a[1]).map(([cl,a])=>`<div class="srcr"><div style="flex:1;font-size:13px;font-weight:500;">${cl}</div><span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${yen(a)}</span><span style="font-size:11px;color:var(--ink3);min-width:28px;text-align:right">${flI>0?Math.round(a/flI*100):0}%</span></div>`).join('')}</div>`:''}
       ${Object.keys(byKC).length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">経費カテゴリ別</div>${Object.entries(byKC).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`<div class="srcr"><div class="tico" style="width:26px;height:26px;font-size:12px;border-radius:5px;">${ci(c)}</div><div style="flex:1;font-size:12.5px;">${c}</div><span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--purple)">${yen(a)}</span><span style="font-size:11px;color:var(--ink3);min-width:28px;text-align:right">${kE>0?Math.round(a/kE*100):0}%</span></div>`).join('')}</div>`:''}
-      ${flI===0&&kE===0?emp('💻','フリーランスの記録がありません','収入・支出にFL/経費フラグを付けると集計されます'):''}`:''
+      ${flI===0&&kE===0?emp('💻','フリーランスの記録がありません'):''}`:''
     }`;
   if(tab==='summary'){
     if(Object.keys(daily).length>0)setTimeout(()=>drawBar(daily,rng),50);
@@ -757,49 +908,21 @@ function rWish(){
   const items=S.data.wishlist.sort((a,b)=>{const po={high:0,mid:1,low:2};if(a.status==='purchased'&&b.status!=='purchased')return 1;if(b.status==='purchased'&&a.status!=='purchased')return-1;return po[a.priority]-po[b.priority];});
   document.getElementById('page-wishlist').innerHTML=`
     <div class="ph"><div><div class="pt">ほしい物リスト</div><div class="ps">${items.length}件 · 未購入 ${items.filter(x=>x.status!=='purchased').length}件</div></div><button class="btn bp sm" onclick="openModal('wish',null)">＋ 追加</button></div>
-    ${items.length===0?emp('◇','ほしい物がありません'):`<div class="wg">${items.map(wCard).join('')}</div>`}`;
+    ${items.length===0?emp('◇','ほしい物がありません'):`<div class="wg">${items.map(w=>`<div class="wc ${w.status==='purchased'?'pur':''}" data-id="${w.id}"><div class="wn">${w.name}</div><div class="wp">${w.price?yen(w.price):'価格未定'}</div><div class="wtg"><span class="badge ${{high:'bh',mid:'bm',low:'bl'}[w.priority]||'bl'}">${{high:'高',mid:'中',low:'低'}[w.priority]||'低'}優先</span>${w.status==='purchased'?'<span class="badge bdn">購入済</span>':w.status==='planned'?'<span class="badge bm">購入予定</span>':''}</div>${w.memo?`<div style="font-size:11.5px;color:var(--ink3);line-height:1.5;margin-bottom:5px;">${w.memo}</div>`:''} ${dlTxt(w.deadline)?`<div style="font-size:11.5px;color:var(--ink3)">📅 ${dlTxt(w.deadline)}</div>`:''} ${w.url?`<div style="font-size:11.5px;margin-top:5px;"><a href="${w.url}" target="_blank" onclick="event.stopPropagation()">リンクを開く →</a></div>`:''}</div>`).join('')}</div>`}`;
 }
-function wCard(w){const d=dlTxt(w.deadline);const pb={high:'bh',mid:'bm',low:'bl'};return`<div class="wc ${w.status==='purchased'?'pur':''}" data-mtype="wish" data-id="${w.id}"><div class="wn">${w.name}</div><div class="wp">${w.price?yen(w.price):'価格未定'}</div><div class="wtg"><span class="badge ${pb[w.priority]||'bl'}">${{high:'高',mid:'中',low:'低'}[w.priority]||'低'}優先</span>${w.status==='purchased'?'<span class="badge bdn">購入済</span>':w.status==='planned'?'<span class="badge bm">購入予定</span>':''}</div>${w.memo?`<div style="font-size:11.5px;color:var(--ink3);line-height:1.5;margin-bottom:5px;">${w.memo}</div>`:''} ${d?`<div style="font-size:11.5px;color:${d.includes('切れ')?'var(--red)':'var(--ink3)'}">📅 ${d}</div>`:''} ${w.url?`<div style="font-size:11.5px;margin-top:5px;"><a href="${w.url}" target="_blank" onclick="event.stopPropagation()">リンクを開く →</a></div>`:''}</div>`;}
 
 /* ── SETTINGS ── */
 function rSets(){
-  const{binId,binKey}=S.data.cfg;
   document.getElementById('page-settings').innerHTML=`
     <div class="ph"><div class="pt">設定</div></div>
-
-    <!-- Sync: JSONBin -->
-    <div style="margin-bottom:24px;">
-      <div class="sec-h">クラウド同期（JSONBin.io）</div>
-      <div class="info-box" style="margin-bottom:12px;">
-        <strong>無料・簡単・OAuth不要</strong> の同期サービスです。<br>
-        ① <a href="https://jsonbin.io" target="_blank" style="color:var(--amber);">jsonbin.io</a> で無料アカウントを作成<br>
-        ② ダッシュボード右上 → <strong>API Keys</strong> → <strong>Secret Key</strong> をコピー<br>
-        ③ 下の「Master Key」欄に貼り付けて「新規Bin作成」<br>
-        ④ 以後は自動で保存・取得できます
-      </div>
-      <div class="card">
-        <div class="fg"><label class="fl">Master Key（Secret Key）</label>
-          <input type="password" id="cfg-key" value="${binKey||''}" placeholder="$2b$10$xxxxxxxxxxxx" oninput="setCfg('binKey',this.value)">
-          <div class="fh">jsonbin.io → Account → API Keys → Secret Key</div>
-        </div>
-        <div class="fg"><label class="fl">Bin ID</label>
-          <div style="display:flex;gap:8px;">
-            <input type="text" id="cfg-binid" value="${binId||''}" placeholder="自動作成 or 既存のBin ID" oninput="setCfg('binId',this.value)" style="flex:1">
-            <button class="btn bg sm" onclick="createBin()">新規作成</button>
-          </div>
-          <div class="fh">Master Keyを入力後「新規作成」でBinを自動生成。複数端末で共有する場合は同じBin IDを使用してください。</div>
-        </div>
-        <div class="sync-row">
-          <button class="btn bp sm" onclick="pullBin()">⬇ 取得</button>
-          <button class="btn bg sm" onclick="pushBin().then(()=>toast('保存しました','ok'))">⬆ 今すぐ保存</button>
-          <div id="set-sync-st"></div>
-        </div>
+    <div style="margin-bottom:24px;"><div class="sec-h">ログイン情報</div>
+      <div class="card" style="display:flex;align-items:center;gap:12px;">
+        ${currentUser?.photoURL?`<img src="${currentUser.photoURL}" style="width:40px;height:40px;border-radius:50%;" referrerpolicy="no-referrer">`:''}
+        <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${currentUser?.displayName||'−'}</div><div style="font-size:12px;color:var(--ink3);">${currentUser?.email||'−'}</div></div>
+        <button class="btn brd sm" onclick="signOut()">ログアウト</button>
       </div>
     </div>
-
-    <!-- Accounts -->
-    <div style="margin-bottom:24px;">
-      <div class="sec-h">口座・資産の管理</div>
+    <div style="margin-bottom:24px;"><div class="sec-h">口座・資産の管理</div>
       <div class="card">
         <div style="font-size:13px;font-weight:600;margin-bottom:10px;">登録済み口座（${S.data.accounts.length}件）</div>
         ${S.data.accounts.length===0?`<div style="font-size:13px;color:var(--ink3);">まだ口座が登録されていません</div>`:`<div>${S.data.accounts.map(a=>{const b=acctBal(a);return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
@@ -811,10 +934,7 @@ function rSets(){
         <button class="btn bp sm" style="margin-top:12px;" onclick="openModal('acct',null)">＋ 口座を追加</button>
       </div>
     </div>
-
-    <!-- Categories -->
-    <div style="margin-bottom:24px;">
-      <div class="sec-h">カテゴリ管理</div>
+    <div style="margin-bottom:24px;"><div class="sec-h">カテゴリ管理</div>
       <div class="card" style="margin-bottom:9px;">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px;">支出カテゴリ</div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;">${S.data.ec.map(c=>`<div class="ctag">${ci(c)} ${c}<span class="dbt" onclick="delCat('ec','${c}')">×</span></div>`).join('')}</div>
@@ -826,32 +946,55 @@ function rSets(){
         <div style="display:flex;gap:7px;"><input type="text" id="nic" placeholder="新しいカテゴリ" style="flex:1"><button class="btn bg sm" onclick="addCat('ic')">追加</button></div>
       </div>
     </div>
-
-    <!-- Data -->
-    <div style="margin-bottom:24px;">
-      <div class="sec-h">データ管理</div>
+    <div style="margin-bottom:24px;"><div class="sec-h">Firebase設定変更</div>
+      <div class="card"><div style="font-size:13px;color:var(--ink3);margin-bottom:10px;">Firebase設定を変更する場合、一度ログアウトが必要です。</div>
+        <button class="btn bg sm" onclick="if(confirm('ログアウトしてFirebase設定を変更しますか？')){localStorage.removeItem('${FBKEY}');location.reload();}">Firebase設定を変更</button>
+      </div>
+    </div>
+    <div style="margin-bottom:24px;"><div class="sec-h">データ管理</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn bg sm" onclick="expData()">⬇ エクスポート</button>
         <button class="btn bg sm" onclick="document.getElementById('imp').click()">⬆ インポート</button>
-        <button class="btn bd2 sm" onclick="doReset()">データ削除</button>
+        <button class="btn brd sm" onclick="doReset()">データ削除</button>
         <input type="file" id="imp" accept=".json" style="display:none" onchange="impData(this)">
       </div>
-    </div>
-    <div style="font-size:11.5px;color:var(--ink3);line-height:2;padding:4px 0 24px;">MoneyLog v2.1 — データはブラウザのlocalStorageに保存されます。JSONBin同期で複数端末共有が可能です。</div>`;
-  // Show sync status in settings
-  const st=document.getElementById('set-sync-st');
-  if(st){const{status,msg}=S.sync;const col=status==='ok'?'var(--green)':status==='err'?'var(--red)':status==='ing'?'var(--amber)':'var(--ink3)';const txt=status==='ok'?'✓ 同期済み':status==='err'?'✗ '+msg:status==='ing'?'同期中…':'−';st.innerHTML=`<span style="font-size:12px;color:${col};">${txt}</span>`;}
+    </div>`;
 }
-function setCfg(k,v){S.data.cfg[k]=v;saveLocal();}
 function addCat(t){const id=t==='ec'?'nec':'nic';const el=document.getElementById(id);const v=el.value.trim();if(!v)return;const arr=S.data[t];if(arr.includes(v)){toast('すでに存在します','err');return;}arr.push(v);save();el.value='';rSets();}
 function delCat(t,c){const arr=S.data[t];const i=arr.indexOf(c);if(i>-1)arr.splice(i,1);save();rSets();}
 function expData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S.data,null,2)],{type:'application/json'}));a.download=`moneylog_${today()}.json`;a.click();toast('エクスポートしました','ok');}
 function impData(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{S.data={...S.data,...JSON.parse(e.target.result)};save();toast('インポートしました','ok');renderPage();}catch{toast('読み込みエラー','err');}};r.readAsText(f);}
-function doReset(){if(!confirm('すべてのデータを削除しますか？'))return;S.data.incomes=[];S.data.expenses=[];S.data.wishlist=[];S.data.accounts=[];S.data.transfers=[];save();toast('削除しました');renderPage();}
+function doReset(){if(!confirm('すべてのデータを削除しますか？'))return;S.data.incomes=[];S.data.expenses=[];S.data.wishlist=[];S.data.accounts=[];S.data.transfers=[];S.data.subscriptions=[];save();toast('削除しました');renderPage();}
 
-/* ── Modals ── */
+/* ── Modal builders ── */
 function swHtml(sel){return`<div class="sw2">${COLORS.map(c=>`<div class="sw3 ${sel===c?'sel':''}" style="background:${c};" onclick="pickColor(this,'${c}')"></div>`).join('')}</div>`;}
 function pickColor(el,c){document.getElementById('acol').value=c;document.querySelectorAll('.sw3').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+
+function mSub(id){
+  const item=id?S.data.subscriptions.find(x=>x.id===id):null;
+  const v=item||{name:'',amount:'',cycle:'monthly',payDay:1,payMonth:1,accountId:'',category:'娯楽',active:true,memo:'',color:COLORS[4]};
+  return`<div class="mhd2"><div class="mtt">${item?'サブスクを編集':'サブスクを追加'}</div><div class="mcl" onclick="closeModal()">×</div></div>
+    <div class="fg"><label class="fl">サービス名</label><input type="text" id="sn" value="${v.name}" placeholder="Netflix, Spotify など"></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">金額 (¥)</label><input type="number" id="sa" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div>
+      <div class="fg"><label class="fl">サイクル</label><select id="sc" onchange="toggleSubCycle()"><option value="monthly"${v.cycle==='monthly'?' selected':''}>月次（毎月）</option><option value="yearly"${v.cycle==='yearly'?' selected':''}>年次（年1回）</option></select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">引き落とし日</label><input type="number" id="sd" value="${v.payDay||1}" min="1" max="31" inputmode="numeric"></div>
+      <div class="fg" id="pay-month-row" style="${v.cycle==='yearly'?'':'display:none'}"><label class="fl">引き落とし月（年次）</label><select id="sm">${Array.from({length:12},(_,i)=>`<option value="${i+1}"${(v.payMonth||1)===i+1?' selected':''}>${i+1}月</option>`).join('')}</select></div>
+    </div>
+    <div class="fg"><label class="fl">口座</label><select id="sacc">${acctOpts(v.accountId)}</select></div>
+    <div class="fg"><label class="fl">カテゴリ</label><select id="scat">${S.data.ec.map(c=>`<option${v.category===c?' selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="fg"><label class="fl">メモ</label><input type="text" id="sm2" value="${v.memo||''}" placeholder="備考"></div>
+    <div class="fg"><label class="fl">カラー</label><input type="hidden" id="acol" value="${v.color||COLORS[4]}">${swHtml(v.color||COLORS[4])}</div>
+    <div class="fg"><label class="cb"><input type="checkbox" id="sact"${v.active!==false?' checked':''}><span>有効（引き落とし中）</span></label></div>
+    <div class="mact">
+      ${item?`<button class="btn brd sm" onclick="delItem('sub','${id}')">削除</button>`:''}
+      <button class="btn bg" onclick="closeModal()">キャンセル</button>
+      <button class="btn bp" onclick="saveSub()">保存</button>
+    </div>`;
+}
+function toggleSubCycle(){const v=gv('sc');const r=document.getElementById('pay-month-row');if(r)r.style.display=v==='yearly'?'':'none';}
 
 function mAcct(id){
   const item=id?S.data.accounts.find(x=>x.id===id):null;
@@ -859,10 +1002,10 @@ function mAcct(id){
   return`<div class="mhd2"><div class="mtt">${item?'口座を編集':'口座を追加'}</div><div class="mcl" onclick="closeModal()">×</div></div>
     <div class="fg"><label class="fl">口座名</label><input type="text" id="aname" value="${v.name}" placeholder="例：楽天銀行、財布、Suica"></div>
     <div class="fg"><label class="fl">種別</label><select id="atype">${Object.entries(ACCT_T).map(([k,o])=>`<option value="${k}"${v.type===k?' selected':''}>${o.i} ${o.l}</option>`).join('')}</select></div>
-    <div class="fg"><label class="fl">初期残高（現在の実際の残高）</label><input type="number" id="ainit" value="${v.initialBalance||0}" inputmode="decimal"><div class="fh">現在の残高を入力してください。収入には換算されません。</div></div>
+    <div class="fg"><label class="fl">初期残高（現在の実際の残高）</label><input type="number" id="ainit" value="${v.initialBalance||0}" inputmode="decimal"><div class="fh">現在の残高を入力。収入には換算されません。</div></div>
     <div class="fg"><label class="fl">カラー</label><input type="hidden" id="acol" value="${v.color||COLORS[0]}">${swHtml(v.color||COLORS[0])}</div>
     <div class="mact">
-      ${item?`<button class="btn bd2 sm" onclick="delItem('acct','${id}')">削除</button>`:''}
+      ${item?`<button class="btn brd sm" onclick="delItem('acct','${id}')">削除</button>`:''}
       <button class="btn bg" onclick="closeModal()">キャンセル</button>
       <button class="btn bp" onclick="saveAcct()">保存</button>
     </div>`;
@@ -872,15 +1015,12 @@ function mXfr(id){
   const item=id?S.data.transfers.find(x=>x.id===id):null;
   const v=item||{date:today(),amount:'',fromId:'',toId:'',memo:''};
   return`<div class="mhd2"><div class="mtt">${item?'振替を編集':'振替・送金'}</div><div class="mcl" onclick="closeModal()">×</div></div>
-    <div class="fr2">
-      <div class="fg"><label class="fl">日付</label><input type="date" id="xd" value="${v.date}"></div>
-      <div class="fg"><label class="fl">金額 (¥)</label><input type="number" id="xa" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div>
-    </div>
+    <div class="fr2"><div class="fg"><label class="fl">日付</label><input type="date" id="xd" value="${v.date}"></div><div class="fg"><label class="fl">金額 (¥)</label><input type="number" id="xa" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div></div>
     <div class="fg"><label class="fl">送金元</label><select id="xf">${acctOpts(v.fromId)}</select></div>
     <div class="fg"><label class="fl">送金先</label><select id="xt">${acctOpts(v.toId)}</select></div>
-    <div class="fg"><label class="fl">メモ（任意）</label><input type="text" id="xm" value="${v.memo||''}" placeholder="例：給与振り込み、Suicaチャージ"></div>
+    <div class="fg"><label class="fl">メモ（任意）</label><input type="text" id="xm" value="${v.memo||''}" placeholder="例：Suicaチャージ"></div>
     <div class="mact">
-      ${item?`<button class="btn bd2 sm" onclick="delItem('transfer','${id}')">削除</button>`:''}
+      ${item?`<button class="btn brd sm" onclick="delItem('transfer','${id}')">削除</button>`:''}
       <button class="btn bg" onclick="closeModal()">キャンセル</button>
       <button class="btn bp" onclick="saveXfr()">保存</button>
     </div>`;
@@ -890,19 +1030,15 @@ function mExp(id){
   const item=id?S.data.expenses.find(x=>x.id===id):null;
   const v=item||{date:today(),amount:'',category:S.data.ec[0]||'食費',accountId:'',memo:'',detail:'',isKeiei:false};
   return`<div class="mhd2"><div class="mtt">${item?'支出を編集':'支出を追加'}</div><div class="mcl" onclick="closeModal()">×</div></div>
-    <div class="fr2">
-      <div class="fg"><label class="fl">日付</label><input type="date" id="md" value="${v.date}"></div>
-      <div class="fg"><label class="fl">金額 (¥)</label><input type="number" id="ma" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div>
-    </div>
+    <div class="fr2"><div class="fg"><label class="fl">日付</label><input type="date" id="md" value="${v.date}"></div><div class="fg"><label class="fl">金額 (¥)</label><input type="number" id="ma" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div></div>
     <div class="fg"><label class="fl">カテゴリ</label><select id="mc">${S.data.ec.map(c=>`<option${v.category===c?' selected':''}>${c}</option>`).join('')}</select></div>
     <div class="fg"><label class="fl">口座</label><select id="macc">${acctOpts(v.accountId)}</select></div>
     <div class="fg"><label class="fl">メモ</label><input type="text" id="mm" value="${v.memo||''}" placeholder="店名・商品名など"></div>
     <div class="fg"><label class="fl">詳細（任意）</label><textarea id="mdt" placeholder="内訳など">${v.detail||''}</textarea></div>
     <div class="fg" style="background:var(--purple-lt);border:1px solid var(--purple-mid);border-radius:var(--rxs);padding:12px;">
-      <label class="cb"><input type="checkbox" id="mkei"${v.isKeiei?' checked':''}><span>経費として計上する（フリーランス事業経費）</span></label>
-    </div>
+      <label class="cb"><input type="checkbox" id="mkei"${v.isKeiei?' checked':''}><span>経費として計上する</span></label></div>
     <div class="mact">
-      ${item?`<button class="btn bd2 sm" onclick="delItem('expense','${id}')">削除</button>`:''}
+      ${item?`<button class="btn brd sm" onclick="delItem('expense','${id}')">削除</button>`:''}
       <button class="btn bg" onclick="closeModal()">キャンセル</button>
       <button class="btn bp" onclick="saveE()">保存</button>
     </div>`;
@@ -912,10 +1048,7 @@ function mInc(id){
   const item=id?S.data.incomes.find(x=>x.id===id):null;
   const v=item||{date:today(),amount:'',category:S.data.ic[0]||'給与',accountId:'',memo:'',isFreelance:false,clientName:''};
   return`<div class="mhd2"><div class="mtt">${item?'収入を編集':'収入を追加'}</div><div class="mcl" onclick="closeModal()">×</div></div>
-    <div class="fr2">
-      <div class="fg"><label class="fl">日付</label><input type="date" id="md" value="${v.date}"></div>
-      <div class="fg"><label class="fl">金額 (¥)</label><input type="number" id="ma" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div>
-    </div>
+    <div class="fr2"><div class="fg"><label class="fl">日付</label><input type="date" id="md" value="${v.date}"></div><div class="fg"><label class="fl">金額 (¥)</label><input type="number" id="ma" value="${v.amount||''}" placeholder="0" min="0" inputmode="decimal"></div></div>
     <div class="fg"><label class="fl">カテゴリ</label><select id="mc">${S.data.ic.map(c=>`<option${v.category===c?' selected':''}>${c}</option>`).join('')}</select></div>
     <div class="fg"><label class="fl">口座（振込先）</label><select id="macc">${acctOpts(v.accountId)}</select></div>
     <div class="fg"><label class="fl">メモ</label><input type="text" id="mm" value="${v.memo||''}" placeholder="備考"></div>
@@ -923,11 +1056,11 @@ function mInc(id){
       <label class="cb"><input type="checkbox" id="mfree"${v.isFreelance?' checked':''} onchange="toggleCl()"><span>フリーランス収入</span></label>
       <div id="clrow" style="${v.isFreelance?'':'display:none;'}margin-top:8px;">
         <label class="fl">クライアント名</label>
-        <input type="text" id="mcl" value="${v.clientName||''}" placeholder="クライアント・会社名">
+        <input type="text" id="mcl" value="${v.clientName||''}" placeholder="クライアント名">
       </div>
     </div>
     <div class="mact">
-      ${item?`<button class="btn bd2 sm" onclick="delItem('income','${id}')">削除</button>`:''}
+      ${item?`<button class="btn brd sm" onclick="delItem('income','${id}')">削除</button>`:''}
       <button class="btn bg" onclick="closeModal()">キャンセル</button>
       <button class="btn bp" onclick="saveI()">保存</button>
     </div>`;
@@ -939,24 +1072,27 @@ function mWish(id){
   const v=item||{name:'',price:'',priority:'mid',deadline:'',url:'',memo:'',status:'considering'};
   return`<div class="mhd2"><div class="mtt">${item?'ほしい物を編集':'ほしい物を追加'}</div><div class="mcl" onclick="closeModal()">×</div></div>
     <div class="fg"><label class="fl">商品名</label><input type="text" id="mn" value="${v.name}" placeholder="何がほしい？"></div>
-    <div class="fr2">
-      <div class="fg"><label class="fl">価格 (¥)</label><input type="number" id="mp" value="${v.price||''}" placeholder="0" min="0" inputmode="decimal"></div>
-      <div class="fg"><label class="fl">重要度</label><select id="mpr"><option value="high"${v.priority==='high'?' selected':''}>高</option><option value="mid"${v.priority==='mid'?' selected':''}>中</option><option value="low"${v.priority==='low'?' selected':''}>低</option></select></div>
-    </div>
-    <div class="fr2">
-      <div class="fg"><label class="fl">購入希望日</label><input type="date" id="mdl" value="${v.deadline||''}"></div>
-      <div class="fg"><label class="fl">ステータス</label><select id="mst"><option value="considering"${v.status==='considering'?' selected':''}>検討中</option><option value="planned"${v.status==='planned'?' selected':''}>購入予定</option><option value="purchased"${v.status==='purchased'?' selected':''}>購入済み</option></select></div>
-    </div>
+    <div class="fr2"><div class="fg"><label class="fl">価格 (¥)</label><input type="number" id="mp" value="${v.price||''}" placeholder="0" min="0" inputmode="decimal"></div><div class="fg"><label class="fl">重要度</label><select id="mpr"><option value="high"${v.priority==='high'?' selected':''}>高</option><option value="mid"${v.priority==='mid'?' selected':''}>中</option><option value="low"${v.priority==='low'?' selected':''}>低</option></select></div></div>
+    <div class="fr2"><div class="fg"><label class="fl">購入希望日</label><input type="date" id="mdl" value="${v.deadline||''}"></div><div class="fg"><label class="fl">ステータス</label><select id="mst"><option value="considering"${v.status==='considering'?' selected':''}>検討中</option><option value="planned"${v.status==='planned'?' selected':''}>購入予定</option><option value="purchased"${v.status==='purchased'?' selected':''}>購入済み</option></select></div></div>
     <div class="fg"><label class="fl">URL（任意）</label><input type="url" id="mu" value="${v.url||''}" placeholder="https://..."></div>
     <div class="fg"><label class="fl">メモ</label><textarea id="mm" placeholder="理由・コメントなど">${v.memo||''}</textarea></div>
     <div class="mact">
-      ${item?`<button class="btn bd2 sm" onclick="delItem('wish','${id}')">削除</button>`:''}
+      ${item?`<button class="btn brd sm" onclick="delItem('wish','${id}')">削除</button>`:''}
       <button class="btn bg" onclick="closeModal()">キャンセル</button>
       <button class="btn bp" onclick="saveW()">保存</button>
     </div>`;
 }
 
-/* ── CRUD — all use editingId (no string-in-onclick) ── */
+/* ── CRUD ── */
+function saveSub(){
+  const name=gv('sn').trim(),amount=parseFloat(gv('sa')),cycle=gv('sc'),payDay=parseInt(gv('sd'))||1,payMonth=parseInt(gv('sm'))||1,accountId=gv('sacc'),category=gv('scat'),memo=gv('sm2').trim(),color=gv('acol')||COLORS[4],active=gb('sact');
+  if(!name||!amount||amount<=0){toast('サービス名と金額を入力してください','err');return;}
+  const n=nowIso(),id=editingId;
+  const obj={name,amount,cycle,payDay,payMonth,accountId,category,memo,color,active,updatedAt:n};
+  if(id){const i=S.data.subscriptions.findIndex(x=>x.id===id);if(i>-1)S.data.subscriptions[i]={...S.data.subscriptions[i],...obj};}
+  else S.data.subscriptions.push({id:uid(),...obj,registered:{},createdAt:n});
+  save();closeModal();toast(id?'更新しました':'サブスクを追加しました','ok');renderPage();
+}
 function saveAcct(){
   const name=gv('aname').trim(),type=gv('atype'),initialBalance=parseFloat(gv('ainit'))||0,color=gv('acol')||COLORS[0];
   if(!name){toast('口座名を入力してください','err');return;}
@@ -970,13 +1106,8 @@ function saveXfr(){
   if(!date||!amount||amount<=0){toast('日付と金額を入力してください','err');return;}
   if(fromId&&toId&&fromId===toId){toast('送金元と送金先が同じです','err');return;}
   const n=nowIso(),id=editingId;
-  if(id){
-    const i=S.data.transfers.findIndex(x=>x.id===id);
-    if(i>-1)S.data.transfers[i]={...S.data.transfers[i],date,amount,fromId,toId,memo,updatedAt:n};
-    else S.data.transfers.push({id:uid(),date,amount,fromId,toId,memo,createdAt:n,updatedAt:n});
-  }else{
-    S.data.transfers.push({id:uid(),date,amount,fromId,toId,memo,createdAt:n,updatedAt:n});
-  }
+  if(id){const i=S.data.transfers.findIndex(x=>x.id===id);if(i>-1)S.data.transfers[i]={...S.data.transfers[i],date,amount,fromId,toId,memo,updatedAt:n};}
+  else S.data.transfers.push({id:uid(),date,amount,fromId,toId,memo,createdAt:n,updatedAt:n});
   save();closeModal();toast('振替を記録しました','ok');renderPage();
 }
 function saveE(){
@@ -1005,23 +1136,27 @@ function saveW(){
 }
 function delItem(t,id){
   if(!confirm('削除しますか？'))return;
-  if(t==='expense')  S.data.expenses  =S.data.expenses.filter(x=>x.id!==id);
-  else if(t==='income')   S.data.incomes   =S.data.incomes.filter(x=>x.id!==id);
-  else if(t==='wish')     S.data.wishlist  =S.data.wishlist.filter(x=>x.id!==id);
-  else if(t==='acct'){
-    if((S.data.incomes.some(x=>x.accountId===id)||S.data.expenses.some(x=>x.accountId===id))&&!confirm('この口座に紐づいた取引があります。続行しますか？'))return;
-    S.data.accounts=S.data.accounts.filter(x=>x.id!==id);
-  }
-  else if(t==='transfer')S.data.transfers =S.data.transfers.filter(x=>x.id!==id);
+  if(t==='expense')S.data.expenses=S.data.expenses.filter(x=>x.id!==id);
+  else if(t==='income')S.data.incomes=S.data.incomes.filter(x=>x.id!==id);
+  else if(t==='wish')S.data.wishlist=S.data.wishlist.filter(x=>x.id!==id);
+  else if(t==='acct'){if((S.data.incomes.some(x=>x.accountId===id)||S.data.expenses.some(x=>x.accountId===id))&&!confirm('この口座に紐づいた取引があります。続行しますか？'))return;S.data.accounts=S.data.accounts.filter(x=>x.id!==id);}
+  else if(t==='transfer')S.data.transfers=S.data.transfers.filter(x=>x.id!==id);
+  else if(t==='sub')S.data.subscriptions=S.data.subscriptions.filter(x=>x.id!==id);
   save();closeModal();toast('削除しました');renderPage();
 }
 
 /* ── Init ── */
 function init(){
-  loadLocal();
+  // Try load saved Firebase config
+  const saved=localStorage.getItem(FBKEY);
+  if(saved){
+    try{initFirebase(JSON.parse(saved));}
+    catch(e){showScreen('setup');}
+  }else{
+    showScreen('setup');
+  }
+  // Nav events
   document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>nav(el.dataset.page)));
-  nav('home');
-  if(S.data.cfg.binId&&S.data.cfg.binKey)setTimeout(pullBin,1500);
 }
 init();
 </script>
