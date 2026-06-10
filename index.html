@@ -180,6 +180,26 @@ a{color:var(--green);}
 .act{font-size:11px;color:var(--ink3);}
 .acbal{font-family:'Cormorant Garamond',serif;font-size:23px;font-weight:600;}
 .acini{font-size:11px;color:var(--ink3);margin-top:3px;}
+/* ── Credit card ── */
+.cc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px;margin-bottom:14px;}
+.cc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;}
+.cc-stripe{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--purple);}
+.cc-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;padding-left:10px;}
+.cc-name{font-size:14.5px;font-weight:700;}
+.cc-limit{font-size:11px;color:var(--ink3);}
+.cc-row{display:flex;gap:10px;margin-bottom:10px;padding-left:10px;}
+.cc-stat{flex:1;}
+.cc-slbl{font-size:10px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.cc-sval{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;}
+.util-wrap{padding-left:10px;margin-bottom:10px;}
+.util-track{height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;}
+.util-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+.util-label{font-size:10.5px;color:var(--ink3);margin-top:3px;}
+.cc-footer{display:flex;align-items:center;justify-content:space-between;padding-left:10px;flex-wrap:wrap;gap:6px;}
+.cc-paydate{font-size:12px;color:var(--ink2);}
+.cc-paydate.urgent{color:var(--red);font-weight:600;}
+.cc-paydate.soon{color:var(--amber);font-weight:600;}
+
 .sw2{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
 .sw3{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform var(--t);}
 .sw3:hover{transform:scale(1.15);}
@@ -299,15 +319,33 @@ a{color:var(--green);}
 
 <!-- Setup screen -->
 <div id="setup-scr" class="fullscr" style="display:none">
-  <div class="auth-card">
+  <div class="auth-card" style="max-width:480px;">
     <div class="auth-logo">MoneyLog</div>
-    <div class="auth-sub">Firebaseプロジェクトの設定を入力してください</div>
-    <div class="auth-field"><label>API Key</label><input type="text" id="fb-apikey" placeholder="AIzaSy..."></div>
-    <div class="auth-field"><label>Auth Domain</label><input type="text" id="fb-authdomain" placeholder="your-app.firebaseapp.com"></div>
-    <div class="auth-field"><label>Project ID</label><input type="text" id="fb-projectid" placeholder="your-app-12345"></div>
-    <div class="auth-field"><label>App ID</label><input type="text" id="fb-appid" placeholder="1:xxx:web:xxx"></div>
-    <div class="fh" style="margin-top:8px;text-align:left;">Firebaseコンソール → プロジェクト設定 → マイアプリ → SDKの設定と構成</div>
+    <div class="auth-sub">Firebaseの設定を貼り付けてください</div>
+    <div class="auth-step"><div class="step-num">1</div><div>Firebaseコンソール → プロジェクト設定 → マイアプリ → <strong>「&lt;/&gt; 構成」</strong> を選択</div></div>
+    <div class="auth-step"><div class="step-num">2</div><div><code>const firebaseConfig = {...}</code> のブロック全体をコピー</div></div>
+    <div class="auth-step"><div class="step-num">3</div><div>下のボックスに貼り付けて「保存」。<br><span style="color:var(--green);font-weight:600;">次回以降は自動でスキップされます。</span></div></div>
+    <div class="auth-field" style="margin-top:14px;">
+      <label>Firebase 設定（コードごと貼り付けてOK）</label>
+      <textarea id="fb-json" rows="7" placeholder='const firebaseConfig = {&#10;  apiKey: "AIzaSy...",&#10;  authDomain: "...",&#10;  projectId: "...",&#10;  appId: "..."&#10;};' style="font-family:monospace;font-size:12px;"></textarea>
+    </div>
+    <div id="fb-err" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:4px;"></div>
     <button class="google-btn" onclick="setupFirebase()">設定を保存してログインへ →</button>
+    <div class="auth-divider"></div>
+    <div style="font-size:11.5px;color:var(--ink3);line-height:1.7;">
+      💡 <strong>おすすめ：</strong> HTMLファイルを直接編集して<br>
+      <code style="font-size:11px;">const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDTVkK05l13LQ_leRiafeO2zmk9F_hjKzY",
+  authDomain:        "moneylog-f461c.firebaseapp.com",
+  projectId:         "moneylog-f461c",
+  storageBucket:     "moneylog-f461c.firebasestorage.app",
+  messagingSenderId: "176024454166",
+  appId:             "1:176024454166:web:7470fc131345ca03562137",
+  measurementId:     "G-SSEV4S867W"
+};</code> の行を<br>
+      Firebaseの設定オブジェクトに書き換えると<br>
+      この画面が永久にスキップされます。
+    </div>
   </div>
 </div>
 
@@ -381,6 +419,32 @@ a{color:var(--green);}
 
 <script>
 'use strict';
+
+/* ════════════════════════════════════════════════════
+   🔧 FIREBASE 設定（ここに貼り付けるだけで設定完了）
+   Firebase Console → プロジェクト設定 → マイアプリ
+   → SDKの設定と構成 からコピーして貼り付けてください。
+   ════════════════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDTVkK05l13LQ_leRiafeO2zmk9F_hjKzY",
+  authDomain:        "moneylog-f461c.firebaseapp.com",
+  projectId:         "moneylog-f461c",
+  storageBucket:     "moneylog-f461c.firebasestorage.app",
+  messagingSenderId: "176024454166",
+  appId:             "1:176024454166:web:7470fc131345ca03562137",
+  measurementId:     "G-SSEV4S867W"
+};
+/* ↑ null の部分を以下のように書き換えてください:
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSy...",
+  authDomain:        "your-app.firebaseapp.com",
+  projectId:         "your-app-xxxxx",
+  storageBucket:     "your-app-xxxxx.appspot.com",
+  messagingSenderId: "000000000000",
+  appId:             "1:000000000000:web:xxxxxxxxxxxxxxxx"
+};
+*/
+
 /* ── Constants ── */
 const ICONS={食費:'🛒',外食:'🍜',交通費:'🚃',住居費:'🏠',光熱費:'💡',通信費:'📱',医療費:'💊',衣類:'👔',娯楽:'🎮',日用品:'🧴',教育:'📚',貯蓄:'🏦','その他支出':'📦',給与:'💼',副業:'🔧',フリーランス:'💻',投資:'📈','その他収入':'💵','通信費(経費)':'📡','交通費(経費)':'🚉','機材・ソフト':'🖥','書籍・資料':'📖',外注費:'🤝',広告費:'📣',会議費:'☕','その他経費':'📋',サブスク:'♻'};
 const ACCT_T={bank:{l:'銀行口座',i:'🏦'},cash:{l:'現金',i:'💴'},ic:{l:'ICカード',i:'🚃'},invest:{l:'投資口座',i:'📈'},credit:{l:'クレジット',i:'💳'},other:{l:'その他',i:'💼'}};
@@ -419,9 +483,29 @@ function initFirebase(cfg){
 }
 
 function setupFirebase(){
-  const apiKey=gv('fb-apikey').trim(),authDomain=gv('fb-authdomain').trim(),projectId=gv('fb-projectid').trim(),appId=gv('fb-appid').trim();
-  if(!apiKey||!authDomain||!projectId||!appId){toast('すべての項目を入力してください','err');return;}
-  const cfg={apiKey,authDomain,projectId,appId};
+  const raw=gv('fb-json').trim();
+  const errEl=document.getElementById('fb-err');
+  if(!raw){if(errEl)errEl.textContent='設定を貼り付けてください。';return;}
+  let cfg=null;
+  try{
+    // Try parsing as JSON first
+    cfg=JSON.parse(raw);
+  }catch(e){
+    // Try extracting from JS object literal (const firebaseConfig = {...})
+    try{
+      const match=raw.match(/=\s*(\{[\s\S]*?\})/);
+      if(match){
+        // Convert JS object to JSON: quote unquoted keys
+        const jsonStr=match[1].replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g,'$1"$2":').replace(/'/g,'"');
+        cfg=JSON.parse(jsonStr);
+      }
+    }catch(e2){}
+  }
+  if(!cfg||!cfg.apiKey||!cfg.projectId){
+    if(errEl)errEl.textContent='設定の読み込みに失敗しました。コード全体を貼り付けてください。';
+    return;
+  }
+  if(errEl)errEl.textContent='';
   localStorage.setItem(FBKEY,JSON.stringify(cfg));
   initFirebase(cfg);
 }
@@ -588,6 +672,7 @@ function openModal(type,id){
   else if(type==='acct')inn.innerHTML=mAcct(editingId);
   else if(type==='transfer')inn.innerHTML=mXfr(editingId);
   else if(type==='sub')inn.innerHTML=mSub(editingId);
+  else if(type==='ccpay')inn.innerHTML=mCCPay(editingId);
 }
 function closeModal(){document.getElementById('mov').classList.remove('open');editingId=null;}
 function ovClick(e){if(e.target===document.getElementById('mov'))closeModal();}
@@ -644,6 +729,14 @@ function rHome(){
       <div class="sbox se"><div class="slb">支出</div><div class="svl neg">${yen(tE)}</div></div>
       <div class="sbox sg"><div class="slb">評価</div><div class="svl" style="color:${g.col}">${g.g}</div></div>
     </div>
+
+    ${(()=>{const ccards=S.data.accounts.filter(a=>a.type==='credit');if(!ccards.length)return'';
+    const urgent=ccards.map(a=>{const d=daysUntil(ccNextPayDate(a)),bal=acctBal(a),debt=bal<0?Math.abs(bal):0;return{a,d,debt};}).filter(x=>x.d<=7&&x.debt>0).sort((a,b)=>a.d-b.d);
+    if(!urgent.length)return'';
+    return`<div class="card" style="border-left:3px solid var(--red);">
+      <div style="font-size:10.5px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">💳 支払い期限が近いカード</div>
+      ${urgent.map(({a,d,debt})=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:13px;font-weight:600;">${a.name}</div><div style="font-size:11px;color:${d<=3?'var(--red)':'var(--amber)'};">${ccNextPayDate(a).replace(/-/g,'/')} ${d===0?'今日':d<0?'期限切れ!':`残${d}日`} ${d<=3?'⚠':''}</div></div><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--red);">${yen(debt)}</div></div>`).join('')}
+    </div>`;})()}
     <div class="gcrd"><div class="gcc ${g.c}">${g.g}</div><div class="gi"><div class="gt">${ml}の評価</div><div class="gm">${g.msg}</div></div></div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -669,7 +762,7 @@ function rAssets(){
       <div><div class="acn">${a.name}</div><div class="act">${aLabel(a.type)}</div></div></div>
       <div class="acbal ${b>=0?'pos':'neg'}">${yen(b)}</div><div class="acini">初期残高: ${yen(a.initialBalance||0)}</div>
     </div>`;}).join('')}</div>`}
-    ${xfrs.length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">最近の振替</div><div class="txl">${xfrs.map(x=>txRow({...x,type:'transfer'})).join('')}</div></div>`:''}`;
+    ${ccSection()}${xfrs.length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">最近の振替</div><div class="txl">${xfrs.map(x=>txRow({...x,type:'transfer'})).join('')}</div></div>`:''}`;
 }
 
 /* ── INCOME ── */
@@ -811,7 +904,7 @@ function subCard(sub){
         :`<button class="reg-btn" onclick="regSub('${sub.id}')">今月分を登録</button>`
       ):''}
       <a class="gcal-btn" href="${gcalUrl(sub)}" target="_blank">📅 Gカレンダー</a>
-      ${sub.active===false?'<span class="badge bl">停止中</span>':''}
+      ${sub.isKeiei?'<span class="badge bpu" style="font-size:9.5px;">経費自動</span>':''} ${sub.active===false?'<span class="badge bl">停止中</span>':''}
     </div>
   </div>`;
 }
@@ -826,7 +919,7 @@ function regSub(subId){
   const day=Math.min(sub.payDay||1,new Date(y,m,0).getDate());
   const date=`${y}-${p2(m)}-${p2(day)}`;
   const n=nowIso();
-  S.data.expenses.push({id:expId,date,amount:sub.amount,category:sub.category||'その他支出',accountId:sub.accountId||'',memo:sub.name,detail:'サブスク自動登録',isKeiei:false,createdAt:n,updatedAt:n});
+  S.data.expenses.push({id:expId,date,amount:sub.amount,category:sub.category||'その他支出',accountId:sub.accountId||'',memo:sub.name,detail:'サブスク自動登録',isKeiei:!!(sub.isKeiei),createdAt:n,updatedAt:n});
   if(!sub.registered)sub.registered={};
   sub.registered[mk]=expId;
   sub.updatedAt=n;
@@ -987,7 +1080,10 @@ function mSub(id){
     <div class="fg"><label class="fl">カテゴリ</label><select id="scat">${S.data.ec.map(c=>`<option${v.category===c?' selected':''}>${c}</option>`).join('')}</select></div>
     <div class="fg"><label class="fl">メモ</label><input type="text" id="sm2" value="${v.memo||''}" placeholder="備考"></div>
     <div class="fg"><label class="fl">カラー</label><input type="hidden" id="acol" value="${v.color||COLORS[4]}">${swHtml(v.color||COLORS[4])}</div>
-    <div class="fg"><label class="cb"><input type="checkbox" id="sact"${v.active!==false?' checked':''}><span>有効（引き落とし中）</span></label></div>
+    <div class="fg" style="display:flex;flex-direction:column;gap:8px;">
+      <label class="cb"><input type="checkbox" id="sact"${v.active!==false?' checked':''}><span>有効（引き落とし中）</span></label>
+      <label class="cb"><input type="checkbox" id="skei"${v.isKeiei?' checked':''}><span style="color:var(--purple);">経費として自動計上する（月次登録時に自動で経費フラグON）</span></label>
+    </div>
     <div class="mact">
       ${item?`<button class="btn brd sm" onclick="delItem('sub','${id}')">削除</button>`:''}
       <button class="btn bg" onclick="closeModal()">キャンセル</button>
@@ -1001,7 +1097,7 @@ function mAcct(id){
   const v=item||{name:'',type:'bank',initialBalance:0,color:COLORS[0]};
   return`<div class="mhd2"><div class="mtt">${item?'口座を編集':'口座を追加'}</div><div class="mcl" onclick="closeModal()">×</div></div>
     <div class="fg"><label class="fl">口座名</label><input type="text" id="aname" value="${v.name}" placeholder="例：楽天銀行、財布、Suica"></div>
-    <div class="fg"><label class="fl">種別</label><select id="atype">${Object.entries(ACCT_T).map(([k,o])=>`<option value="${k}"${v.type===k?' selected':''}>${o.i} ${o.l}</option>`).join('')}</select></div>
+    <div class="fg"><label class="fl">種別</label><select id="atype" onchange="const f=document.getElementById('cc-fields');if(f)f.style.display=this.value==='credit'?'block':'none'">${Object.entries(ACCT_T).map(([k,o])=>`<option value="${k}"${v.type===k?' selected':''}>${o.i} ${o.l}</option>`).join('')}</select></div>
     <div class="fg"><label class="fl">初期残高（現在の実際の残高）</label><input type="number" id="ainit" value="${v.initialBalance||0}" inputmode="decimal"><div class="fh">現在の残高を入力。収入には換算されません。</div></div>
     <div class="fg"><label class="fl">カラー</label><input type="hidden" id="acol" value="${v.color||COLORS[0]}">${swHtml(v.color||COLORS[0])}</div>
     <div class="mact">
@@ -1084,21 +1180,56 @@ function mWish(id){
 }
 
 /* ── CRUD ── */
+
+function mCCPay(acctId){
+  const acct=S.data.accounts.find(x=>x.id===acctId);
+  if(!acct)return'';
+  const bal=acctBal(acct),debt=bal<0?Math.abs(bal):0;
+  const payDate=ccNextPayDate(acct);
+  const bankAccts=S.data.accounts.filter(x=>x.type!=='credit'&&x.id!==acctId);
+  return`<div class="mhd2"><div class="mtt">クレジット支払いを記録</div><div class="mcl" onclick="closeModal()">×</div></div>
+    <div style="background:var(--purple-lt);border:1px solid var(--purple-mid);border-radius:var(--rxs);padding:12px;margin-bottom:14px;font-size:13px;">
+      <strong>${acct.name}</strong> の支払いを記録します。<br>
+      <span style="color:var(--ink3);font-size:12px;">支払うと銀行口座の残高が減り、カードの残高が回復します。</span>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">支払い金額 (¥)</label><input type="number" id="cpamt" value="${Math.round(debt)||''}" placeholder="0" min="0" inputmode="decimal"><div class="fh">支払い残高: ${yen(debt)}</div></div>
+      <div class="fg"><label class="fl">支払い日</label><input type="date" id="cpdate" value="${payDate}"></div>
+    </div>
+    <div class="fg"><label class="fl">引き落とし口座（銀行）</label><select id="cpfrom">${bankAccts.length?bankAccts.map(a=>`<option value="${a.id}">${aIcon(a.type)} ${a.name}</option>`).join(''):'<option value="">口座がありません</option>'}</select></div>
+    <div class="fg"><label class="fl">メモ（任意）</label><input type="text" id="cpmemo" value="${acct.name} 支払い" placeholder="メモ"></div>
+    <div style="font-size:11.5px;color:var(--ink3);background:var(--surface2);border-radius:var(--rxs);padding:10px;margin-bottom:4px;">振替先のカード口座: <strong>${acct.name}</strong></div>
+    <div class="mact">
+      <button class="btn bg" onclick="closeModal()">キャンセル</button>
+      <button class="btn bp" onclick="saveCCPay('${acctId}')">支払いを記録</button>
+    </div>`;
+}
+function saveCCPay(toAcctId){
+  const amount=parseFloat(gv('cpamt')),date=gv('cpdate'),fromId=gv('cpfrom'),memo=gv('cpmemo').trim();
+  if(!amount||amount<=0){toast('金額を入力してください','err');return;}
+  if(!fromId){toast('引き落とし口座を選択してください','err');return;}
+  const n=nowIso();
+  S.data.transfers.push({id:uid(),date,amount,fromId,toId:toAcctId,memo:memo||'クレジット支払い',createdAt:n,updatedAt:n});
+  save();closeModal();toast('支払いを記録しました','ok');renderPage();
+}
+
 function saveSub(){
-  const name=gv('sn').trim(),amount=parseFloat(gv('sa')),cycle=gv('sc'),payDay=parseInt(gv('sd'))||1,payMonth=parseInt(gv('sm'))||1,accountId=gv('sacc'),category=gv('scat'),memo=gv('sm2').trim(),color=gv('acol')||COLORS[4],active=gb('sact');
+  const name=gv('sn').trim(),amount=parseFloat(gv('sa')),cycle=gv('sc'),payDay=parseInt(gv('sd'))||1,payMonth=parseInt(gv('sm'))||1,accountId=gv('sacc'),category=gv('scat'),memo=gv('sm2').trim(),color=gv('acol')||COLORS[4],active=gb('sact'),isKeiei=gb('skei');
   if(!name||!amount||amount<=0){toast('サービス名と金額を入力してください','err');return;}
   const n=nowIso(),id=editingId;
-  const obj={name,amount,cycle,payDay,payMonth,accountId,category,memo,color,active,updatedAt:n};
+  const obj={name,amount,cycle,payDay,payMonth,accountId,category,memo,color,active,isKeiei,updatedAt:n};
   if(id){const i=S.data.subscriptions.findIndex(x=>x.id===id);if(i>-1)S.data.subscriptions[i]={...S.data.subscriptions[i],...obj};}
   else S.data.subscriptions.push({id:uid(),...obj,registered:{},createdAt:n});
   save();closeModal();toast(id?'更新しました':'サブスクを追加しました','ok');renderPage();
 }
 function saveAcct(){
   const name=gv('aname').trim(),type=gv('atype'),initialBalance=parseFloat(gv('ainit'))||0,color=gv('acol')||COLORS[0];
+  const closingDay=parseInt(gv('acc-closing'))||15,paymentDay=parseInt(gv('acc-payment'))||10,creditLimit=parseFloat(gv('acc-limit'))||0;
   if(!name){toast('口座名を入力してください','err');return;}
   const n=nowIso(),id=editingId;
-  if(id){const i=S.data.accounts.findIndex(x=>x.id===id);if(i>-1)S.data.accounts[i]={...S.data.accounts[i],name,type,initialBalance,color,updatedAt:n};}
-  else S.data.accounts.push({id:uid(),name,type,initialBalance,color,createdAt:n,updatedAt:n});
+  const obj={name,type,initialBalance,color,closingDay,paymentDay,creditLimit,updatedAt:n};
+  if(id){const i=S.data.accounts.findIndex(x=>x.id===id);if(i>-1)S.data.accounts[i]={...S.data.accounts[i],...obj};}
+  else S.data.accounts.push({id:uid(),...obj,createdAt:n});
   save();closeModal();toast(id?'口座を更新しました':'口座を追加しました','ok');renderPage();
 }
 function saveXfr(){
@@ -1147,16 +1278,22 @@ function delItem(t,id){
 
 /* ── Init ── */
 function init(){
-  // Try load saved Firebase config
-  const saved=localStorage.getItem(FBKEY);
-  if(saved){
-    try{initFirebase(JSON.parse(saved));}
-    catch(e){showScreen('setup');}
-  }else{
-    showScreen('setup');
-  }
   // Nav events
   document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>nav(el.dataset.page)));
+
+  // 1. Use hardcoded config if available (skip setup screen entirely)
+  if(typeof FIREBASE_CONFIG === 'object' && FIREBASE_CONFIG !== null){
+    initFirebase(FIREBASE_CONFIG);
+    return;
+  }
+  // 2. Use saved config from localStorage
+  const saved=localStorage.getItem(FBKEY);
+  if(saved){
+    try{initFirebase(JSON.parse(saved));return;}
+    catch(e){}
+  }
+  // 3. Show setup screen
+  showScreen('setup');
 }
 init();
 </script>
