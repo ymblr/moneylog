@@ -199,6 +199,40 @@ a{color:var(--green);}
 .cc-paydate{font-size:12px;color:var(--ink2);}
 .cc-paydate.urgent{color:var(--red);font-weight:600;}
 .cc-paydate.soon{color:var(--amber);font-weight:600;}
+/* ── Credit card page ── */
+.cc-page-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px;}
+.cc-page-header{display:flex;align-items:center;gap:0;padding:16px 18px 14px;border-bottom:1px solid var(--border);position:relative;}
+.cc-page-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;}
+.cc-page-title{font-size:16px;font-weight:700;margin-left:14px;}
+.cc-page-sub{font-size:11.5px;color:var(--ink3);margin-left:14px;margin-top:2px;}
+.cc-auto-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;}
+.cc-auto-on{background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid);}
+.cc-auto-off{background:var(--surface2);color:var(--ink3);border:1px solid var(--border);}
+.cc-body{padding:18px;}
+.cc-overview{display:flex;align-items:center;gap:20px;margin-bottom:16px;flex-wrap:wrap;}
+.cc-gauge-wrap{flex-shrink:0;}
+.cc-stats-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:200px;}
+.cc-stat-item{background:var(--surface2);border-radius:var(--rsm);padding:12px;}
+.cc-stat-lbl{font-size:10px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.cc-stat-val{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;}
+.cc-timeline{margin-bottom:16px;}
+.cc-tl-label{font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.cc-tl-bar{position:relative;height:8px;background:var(--bg2);border-radius:4px;margin:20px 0 28px;}
+.cc-tl-fill{position:absolute;left:0;top:0;height:100%;border-radius:4px;background:var(--purple);}
+.cc-tl-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;border:2px solid var(--surface);}
+.cc-tl-tick{position:absolute;top:100%;transform:translateX(-50%);margin-top:8px;font-size:10.5px;white-space:nowrap;color:var(--ink3);text-align:center;}
+.cc-tl-tick strong{display:block;font-size:11.5px;color:var(--ink2);}
+.cc-cycles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.cc-cycle-box{border-radius:var(--rsm);padding:12px;border:1px solid var(--border);}
+.cc-cycle-lbl{font-size:10px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.cc-cycle-range{font-size:11px;color:var(--ink3);margin-bottom:6px;}
+.cc-cycle-val{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;}
+.cc-pay-row{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--red-lt);border-radius:var(--rsm);margin-bottom:12px;gap:10px;}
+.cc-pay-row.paid{background:var(--green-lt);}
+.cc-recent-lbl{font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.pending-banner{background:var(--red-lt);border:1px solid var(--red-mid);border-radius:var(--rsm);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.auto-banner{background:var(--green-lt);border:1px solid var(--green-mid);border-radius:var(--rsm);padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--green);}
+
 
 .sw2{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
 .sw3{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform var(--t);}
@@ -374,6 +408,7 @@ a{color:var(--green);}
         <div class="nv" data-page="income"><span class="ni">↑</span>収入</div>
         <div class="nv" data-page="expense"><span class="ni">↓</span>支出・経費</div>
         <div class="nv" data-page="subs"><span class="ni">♻</span>サブスク</div>
+      <div class="nv" data-page="credit"><span class="ni">💳</span>クレジット</div>
         <div class="nv" data-page="report"><span class="ni">◈</span>レポート</div>
         <div class="nv" data-page="wishlist"><span class="ni">◇</span>ほしい物</div>
         <div class="nv" data-page="settings"><span class="ni">◎</span>設定</div>
@@ -387,6 +422,7 @@ a{color:var(--green);}
         <div id="page-income"   class="page"></div>
         <div id="page-expense"  class="page"></div>
         <div id="page-subs"     class="page"></div>
+      <div id="page-credit"   class="page"></div>
         <div id="page-report"   class="page"></div>
         <div id="page-wishlist" class="page"></div>
         <div id="page-settings" class="page"></div>
@@ -602,7 +638,8 @@ function renderPage(){
   switch(S.page){
     case'home':rHome();break;case'assets':rAssets();break;
     case'income':rIncome();break;case'expense':rExpense();break;
-    case'subs':rSubs();break;case'report':rReport();break;
+    case'subs':rSubs();break;
+    case'credit':rCredit();break;case'report':rReport();break;
     case'wishlist':rWish();break;case'settings':rSets();break;
   }
 }
@@ -640,6 +677,192 @@ function acctOpts(sel){return'<option value="">− 未設定 −</option>'+S.dat
 function monthKey(){return`${S.vm.getFullYear()}-${p2(S.vm.getMonth()+1)}`;}
 function subMonthly(sub){return sub.cycle==='yearly'?Math.round(sub.amount/12):sub.amount;}
 function isSchThisMonth(sub){if(!sub.active)return false;if(sub.cycle==='monthly')return true;return(sub.payMonth||1)===S.vm.getMonth()+1;}
+
+/* ── Credit Card Page ── */
+function ccGauge(percent,color){
+  const r=46,circ=2*Math.PI*r,p=Math.min(Math.max(percent,0),100);
+  const dash=(p/100)*circ,gap=circ-dash;
+  const textColor=p>=80?'var(--red)':p>=50?'var(--amber)':p>0?'var(--purple)':'var(--ink3)';
+  return `<svg viewBox="0 0 120 120" width="108" height="108">
+    <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--bg2)" stroke-width="10"/>
+    ${p>0?`<circle cx="60" cy="60" r="${r}" fill="none" stroke="${color}" stroke-width="10"
+      stroke-dasharray="${dash.toFixed(1)} ${gap.toFixed(1)}"
+      stroke-linecap="round" transform="rotate(-90 60 60)"/>`:''}
+    <text x="60" y="54" text-anchor="middle"
+      style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;fill:${textColor}">${p}%</text>
+    <text x="60" y="70" text-anchor="middle"
+      style="font-family:'Figtree',sans-serif;font-size:10px;fill:var(--ink3);">利用率</text>
+  </svg>`;}
+
+function ccTimeline(a){
+  const now=new Date(),todayStr=fmt(now);
+  const cd=a.closingDay||15,pd=a.paymentDay||10;
+  const cur=ccCurrentCycle(a),prev=ccPrevCycle(a);
+  const payDate=ccNextPayDate(a);
+  const dLeft=daysUntil(payDate);
+  // Timeline spans from prev cycle start to current cycle end
+  const startDt=new Date(prev.s+'T00:00:00');
+  const endDt=new Date(cur.e+'T00:00:00');
+  const total=endDt-startDt||1;
+  const prevEndDt=new Date(prev.e+'T00:00:00');
+  const todayDt=new Date(todayStr+'T00:00:00');
+  const payDt=new Date(payDate+'T00:00:00');
+  const pPrevClose=Math.min(100,Math.max(0,(prevEndDt-startDt)/total*100));
+  const pToday=Math.min(100,Math.max(0,(todayDt-startDt)/total*100));
+  const pPay=Math.min(100,Math.max(0,(payDt-startDt)/total*100));
+  const urgColor=dLeft<=3?'var(--red)':dLeft<=7?'var(--amber)':'var(--blue)';
+  const paidThisCycle=isPaymentDoneThisCycle(a);
+  return `<div class="cc-timeline"><div class="cc-tl-label">支払いタイムライン</div>
+    <div class="cc-tl-bar">
+      <div class="cc-tl-fill" style="width:${pToday}%;background:linear-gradient(90deg,var(--purple-mid),var(--purple))"></div>
+      <div class="cc-tl-marker" style="left:0%;background:var(--ink3);">
+        <div class="cc-tl-tick" style="left:0%;transform:none;"><strong>${fd(prev.s)}</strong>開始</div></div>
+      <div class="cc-tl-marker" style="left:${pPrevClose}%;background:var(--amber);">
+        <div class="cc-tl-tick"><strong>${fd(prev.e)}</strong>前回締め</div></div>
+      <div class="cc-tl-marker" style="left:${pPay}%;background:${paidThisCycle?'var(--green)':urgColor};">
+        <div class="cc-tl-tick" style="color:${paidThisCycle?'var(--green)':urgColor}"><strong>${fd(payDate)}</strong>${paidThisCycle?'支払済':'支払日'}</div></div>
+      <div class="cc-tl-marker" style="left:${pToday}%;background:var(--ink);width:16px;height:16px;">
+        <div class="cc-tl-tick" style="color:var(--ink)"><strong>今日</strong>${fd(todayStr)}</div></div>
+      <div class="cc-tl-marker" style="left:100%;background:var(--ink3);">
+        <div class="cc-tl-tick" style="right:0;transform:none;left:auto"><strong>${fd(cur.e)}</strong>次回締め</div></div>
+    </div>
+  </div>`;}
+
+function isPaymentDoneThisCycle(a){
+  if(!a.linkedAccountId)return false;
+  const payDate=ccNextPayDate(a);
+  const ym=payDate.substring(0,7);
+  return S.data.transfers.some(t=>t.toId===a.id&&t.fromId===a.linkedAccountId&&t.date.startsWith(ym));
+}
+
+function checkDuePayments(){
+  const todayStr=today();
+  let changed=false;
+  S.data.accounts.filter(a=>a.type==='credit'&&a.linkedAccountId&&a.autoPayment).forEach(a=>{
+    if(isPaymentDoneThisCycle(a))return;
+    const payDate=ccNextPayDate(a);
+    // If TODAY is the payment date or past it (within same month)
+    const ym=payDate.substring(0,7);
+    if(todayStr.startsWith(ym)&&todayStr>=payDate){
+      const prev=ccPrevCycle(a);
+      const prevAmt=ccCycleSp(a,prev);
+      if(prevAmt<=0)return;
+      const n=nowIso();
+      S.data.transfers.push({id:uid(),date:payDate,amount:prevAmt,fromId:a.linkedAccountId,toId:a.id,memo:a.name+' 自動引き落とし',createdAt:n,updatedAt:n});
+      toast(a.name+' の自動引き落とし（'+yen(prevAmt)+'）を記録しました','ok');
+      changed=true;
+    }
+  });
+  if(changed)save();
+}
+
+function rCredit(){
+  const cards=S.data.accounts.filter(a=>a.type==='credit');
+  const el=document.getElementById('page-credit');
+  if(!el)return;
+  if(cards.length===0){
+    el.innerHTML=`<div class="ph"><div class="pt">クレジットカード</div></div>
+      ${emp('💳','クレジットカードがありません','口座追加でクレジットカードを登録してください')}
+      <div style="text-align:center;margin-top:16px;"><button class="btn bp" onclick="openModal('acct',null)">＋ クレジットカードを追加</button></div>`;
+    return;
+  }
+  el.innerHTML=`
+    <div class="ph"><div><div class="pt">クレジットカード</div><div class="ps">${cards.length}枚登録</div></div>
+      <button class="btn bp sm" onclick="openModal('acct',null)">＋ 追加</button></div>
+    ${cards.map(a=>ccCardSection(a)).join('')}`;
+}
+
+function ccCardSection(a){
+  const bal=acctBal(a);
+  const debt=bal<0?Math.abs(bal):0;
+  const limit=a.creditLimit||0;
+  const util=limit>0?Math.round(debt/limit*100):0;
+  const utilColor=util>=80?'var(--red)':util>=50?'var(--amber)':'var(--purple)';
+  const cur=ccCurrentCycle(a),prev=ccPrevCycle(a);
+  const curSp=ccCycleSp(a,cur),prevSp=ccCycleSp(a,prev);
+  const payDate=ccNextPayDate(a);
+  const dLeft=daysUntil(payDate);
+  const urgColor=dLeft<=3?'var(--red)':dLeft<=7?'var(--amber)':'var(--ink2)';
+  const linked=S.data.accounts.find(x=>x.id===a.linkedAccountId);
+  const linkedBal=linked?acctBal(linked):null;
+  const paidThisCycle=isPaymentDoneThisCycle(a);
+  const recentTx=S.data.expenses.filter(x=>x.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date)).slice(0,5);
+  const autoOn=!!(a.autoPayment&&a.linkedAccountId);
+  // Pending payment notice
+  let payNotice='';
+  if(!paidThisCycle&&prevSp>0){
+    if(dLeft<=0){
+      payNotice=`<div class="pending-banner">
+        <div><div style="font-size:13px;font-weight:600;color:var(--red);">⚠ 支払日を過ぎています</div>
+          <div style="font-size:12px;color:var(--red);">${yen(prevSp)} の引き落としが未記録です</div></div>
+        <button class="btn brd sm" data-ccpay="${a.id}">今すぐ記録</button>
+      </div>`;
+    }else if(dLeft<=7){
+      payNotice=`<div class="pending-banner">
+        <div><div style="font-size:13px;font-weight:600;color:var(--amber);">支払日まで残${dLeft}日</div>
+          <div style="font-size:12px;color:var(--amber);">${payDate.replace(/-/g,'/')} に ${yen(prevSp)} が引き落とされます</div>
+          ${linked?`<div style="font-size:11.5px;color:var(--ink3);margin-top:2px;">引き落とし口座: ${linked.name} （残高 ${yen(linkedBal)}）${linkedBal!==null&&linkedBal<prevSp?'<span style="color:var(--red);font-weight:600;"> ⚠ 残高不足</span>':''}</div>`:''}
+        </div>
+        <button class="btn bg sm" data-ccpay="${a.id}">支払いを記録</button>
+      </div>`;
+    }
+  }else if(paidThisCycle){
+    payNotice=`<div class="auto-banner">✓ 今サイクルの支払いは記録済みです</div>`;
+  }
+  return `<div class="cc-page-card">
+    <div class="cc-page-header">
+      <div class="cc-page-stripe" style="background:${a.color||'var(--purple)'}"></div>
+      <div style="flex:1;padding-left:14px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="cc-page-title">${a.name}</div>
+          <span class="cc-auto-badge ${autoOn?'cc-auto-on':'cc-auto-off'}">${autoOn?'✓ 自動引き落とし ON':'自動引き落とし OFF'}</span>
+        </div>
+        <div class="cc-page-sub">${linked?`紐づき口座: ${linked.name}（残高 ${yen(linkedBal)}）`:'口座未設定'} ／ 毎月${a.closingDay||15}日締め・翌月${a.paymentDay||10}日払い</div>
+      </div>
+      <button class="btn bg xs" style="flex-shrink:0;" data-acctid="${a.id}">⚙ 設定</button>
+    </div>
+    <div class="cc-body">
+      ${payNotice}
+      <div class="cc-overview">
+        <div class="cc-gauge-wrap">${ccGauge(util,utilColor)}</div>
+        <div class="cc-stats-grid">
+          <div class="cc-stat-item" style="border-left:2px solid var(--red)">
+            <div class="cc-stat-lbl">支払い残高</div>
+            <div class="cc-stat-val neg">${yen(debt)}</div>
+          </div>
+          <div class="cc-stat-item" style="border-left:2px solid var(--purple)">
+            <div class="cc-stat-lbl">今サイクル</div>
+            <div class="cc-stat-val" style="color:var(--purple)">${yen(curSp)}</div>
+          </div>
+          ${limit>0?`<div class="cc-stat-item" style="border-left:2px solid var(--ink3)">
+            <div class="cc-stat-lbl">利用限度額</div>
+            <div class="cc-stat-val">${yen(limit)}</div>
+          </div>`:'<div></div>'}
+          <div class="cc-stat-item" style="border-left:2px solid ${urgColor}">
+            <div class="cc-stat-lbl">次回支払日</div>
+            <div class="cc-stat-val" style="font-size:16px;color:${urgColor}">${payDate.replace(/-/g,'/')} <span style="font-size:13px;">残${Math.max(0,dLeft)}日</span></div>
+          </div>
+        </div>
+      </div>
+      ${ccTimeline(a)}
+      <div class="cc-cycles">
+        <div class="cc-cycle-box" style="background:var(--surface2)">
+          <div class="cc-cycle-lbl">今サイクル（利用中）</div>
+          <div class="cc-cycle-range">${fd(cur.s)} 〜 ${fd(cur.e)}</div>
+          <div class="cc-cycle-val" style="color:var(--purple)">${yen(curSp)}</div>
+        </div>
+        <div class="cc-cycle-box" style="background:${paidThisCycle?'var(--green-lt)':'var(--red-lt)'}; border-color:${paidThisCycle?'var(--green-mid)':'var(--red-mid)'}">
+          <div class="cc-cycle-lbl" style="color:${paidThisCycle?'var(--green)':'var(--red)'}">前サイクル（${paidThisCycle?'支払済':'支払待ち'}）</div>
+          <div class="cc-cycle-range">${fd(prev.s)} 〜 ${fd(prev.e)}</div>
+          <div class="cc-cycle-val ${paidThisCycle?'':'neg'}">${yen(prevSp)}</div>
+        </div>
+      </div>
+      ${recentTx.length>0?`<div class="cc-recent-lbl">最近の利用</div>
+        <div class="txl">${recentTx.map(x=>txRow({...x,type:'expense'})).join('')}</div>`:''}
+    </div>
+  </div>`;
+}
+
 /* ── Credit card helpers ── */
 function ccCurrentCycle(acct){
   const now=new Date(),cd=acct.closingDay||15,y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
@@ -1286,10 +1509,10 @@ function saveSub(){
 }
 function saveAcct(){
   const name=gv('aname').trim(),type=gv('atype'),initialBalance=parseFloat(gv('ainit'))||0,color=gv('acol')||COLORS[0];
-  const closingDay=parseInt(gv('acc-closing'))||15,paymentDay=parseInt(gv('acc-payment'))||10,creditLimit=parseFloat(gv('acc-limit'))||0;
+  const closingDay=parseInt(gv('acc-closing'))||15,paymentDay=parseInt(gv('acc-payment'))||10,creditLimit=parseFloat(gv('acc-limit'))||0,linkedAccountId=gv('acc-linked')||'',autoPayment=gb('acc-auto');
   if(!name){toast('口座名を入力してください','err');return;}
   const n=nowIso(),id=editingId;
-  const obj={name,type,initialBalance,color,closingDay,paymentDay,creditLimit,updatedAt:n};
+  const obj={name,type,initialBalance,color,closingDay,paymentDay,creditLimit,linkedAccountId,autoPayment,updatedAt:n};
   if(id){const i=S.data.accounts.findIndex(x=>x.id===id);if(i>-1)S.data.accounts[i]={...S.data.accounts[i],...obj};}
   else S.data.accounts.push({id:uid(),...obj,createdAt:n});
   save();closeModal();toast(id?'口座を更新しました':'口座を追加しました','ok');renderPage();
