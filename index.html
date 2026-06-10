@@ -657,10 +657,9 @@ function daysUntil(dateStr){return Math.ceil((new Date(dateStr+'T00:00:00')-new 
 function ccCycleSp(acct,range){return S.data.expenses.filter(x=>x.accountId===acct.id&&inR(x.date,range.s,range.e)).reduce((s,x)=>s+x.amount,0);}
 function isCreditAcct(a){return a.type==='credit';}
 function ccSection(){
-  const cards=S.data.accounts.filter(isCreditAcct);
+  const cards=S.data.accounts.filter(a=>a.type==='credit');
   if(!cards.length)return'';
-  return`<div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;margin-top:4px;">クレジットカード明細</div>
-  <div class="cc-grid">${cards.map(a=>{
+  const cardHtml=cards.map(a=>{
     const bal=acctBal(a);
     const debt=bal<0?Math.abs(bal):0;
     const cur=ccCurrentCycle(a);
@@ -672,22 +671,31 @@ function ccSection(){
     const utilColor=util>=80?'var(--red)':util>=50?'var(--amber)':'var(--green)';
     const urgCls=dLeft<=3?'urgent':dLeft<=7?'soon':'';
     const closingLabel='毎月'+(a.closingDay||15)+'日締め / 翌月'+(a.paymentDay||10)+'日払い';
-    return'<div class="cc-card">'
-      +'<div class="cc-stripe" style="background:'+(a.color||'var(--purple)')+'"></div>'
-      +'<div class="cc-head"><div><div class="cc-name">'+a.name+'</div><div class="cc-limit">'+closingLabel+'</div></div>'
-      +(limit>0?'<div style="font-size:11px;color:var(--ink3);">限度額 '+yen(limit)+'</div>':'')+'</div>'
-      +'<div class="cc-row">'
-      +'<div class="cc-stat"><div class="cc-slbl">今サイクル利用</div><div class="cc-sval neg">'+yen(curSp)+'</div></div>'
-      +'<div class="cc-stat"><div class="cc-slbl">支払い残高</div><div class="cc-sval '+(debt>0?'neg':'')+'">'+yen(debt)+'</div></div>'
-      +'</div>'
-      +(limit>0?'<div class="util-wrap"><div class="util-track"><div class="util-fill" style="width:'+Math.min(util,100)+'%;background:'+utilColor+'"></div></div><div class="util-label">利用率 '+util+'%（'+yen(debt)+' / '+yen(limit)+'）</div></div>':'')
-      +'<div class="cc-footer">'
-      +'<div class="cc-paydate '+urgCls+'">次回支払日: '+payDate.replace(/-/g,'/')+' '+(dLeft>=0?'(残'+dLeft+'日)':'(過ぎています)')+' '+(dLeft<=3&&dLeft>=0?'⚠':'')+'</div>'
-      +'<div style="display:flex;gap:6px;">'
-      +'<button class="btn bg xs" onclick="openModal('ccpay',''+a.id+'')">💳 支払いを記録</button>'
-      +'<button class="btn bg xs" onclick="openModal('acct',''+a.id+'')">編集</button>'
-      +'</div></div></div>';
-  }).join('')}</div>`;
+    const limitHtml=limit>0?`<div style="font-size:11px;color:var(--ink3);">限度額 ${yen(limit)}</div>`:'';
+    const utilHtml=limit>0?`<div class="util-wrap"><div class="util-track"><div class="util-fill" style="width:${Math.min(util,100)}%;background:${utilColor}"></div></div><div class="util-label">利用率 ${util}% （${yen(debt)} / ${yen(limit)}）</div></div>`:'';
+    const daysHtml=dLeft>=0?`(残${dLeft}日)`:'(過ぎています)';
+    const warnHtml=dLeft<=3&&dLeft>=0?'⚠':'';
+    return `<div class="cc-card">
+      <div class="cc-stripe" style="background:${a.color||'var(--purple)'}"></div>
+      <div class="cc-head">
+        <div><div class="cc-name">${a.name}</div><div class="cc-limit">${closingLabel}</div></div>
+        ${limitHtml}
+      </div>
+      <div class="cc-row">
+        <div class="cc-stat"><div class="cc-slbl">今サイクル利用</div><div class="cc-sval neg">${yen(curSp)}</div></div>
+        <div class="cc-stat"><div class="cc-slbl">支払い残高</div><div class="cc-sval ${debt>0?'neg':''}">${yen(debt)}</div></div>
+      </div>
+      ${utilHtml}
+      <div class="cc-footer">
+        <div class="cc-paydate ${urgCls}">次回支払日: ${payDate.replace(/-/g,'/')} ${daysHtml} ${warnHtml}</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn bg xs" data-ccpay="${a.id}">💳 支払いを記録</button>
+          <button class="btn bg xs" data-acctid="${a.id}">編集</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;margin-top:4px;">クレジットカード明細</div><div class="cc-grid">${cardHtml}</div>`;
 }
 
 function gcalUrl(sub){
@@ -748,11 +756,15 @@ function txRow(tx){
 }
 document.addEventListener('click',e=>{
   const r=e.target.closest('.txi[data-mtype]');
-  if(r)openModal(r.dataset.mtype,r.dataset.id||null);
+  if(r){openModal(r.dataset.mtype,r.dataset.id||null);return;}
   const w=e.target.closest('.wc[data-id]');
-  if(w)openModal('wish',w.dataset.id);
+  if(w){openModal('wish',w.dataset.id);return;}
   const ac=e.target.closest('.acc[data-id]');
-  if(ac)openModal('acct',ac.dataset.id);
+  if(ac){openModal('acct',ac.dataset.id);return;}
+  const cp=e.target.closest('[data-ccpay]');
+  if(cp){openModal('ccpay',cp.dataset.ccpay);return;}
+  const ae=e.target.closest('.cc-card [data-acctid]');
+  if(ae){e.stopPropagation();openModal('acct',ae.dataset.acctid);return;}
 });
 
 /* ── HOME ── */
