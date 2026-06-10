@@ -640,6 +640,56 @@ function acctOpts(sel){return'<option value="">− 未設定 −</option>'+S.dat
 function monthKey(){return`${S.vm.getFullYear()}-${p2(S.vm.getMonth()+1)}`;}
 function subMonthly(sub){return sub.cycle==='yearly'?Math.round(sub.amount/12):sub.amount;}
 function isSchThisMonth(sub){if(!sub.active)return false;if(sub.cycle==='monthly')return true;return(sub.payMonth||1)===S.vm.getMonth()+1;}
+/* ── Credit card helpers ── */
+function ccCurrentCycle(acct){
+  const now=new Date(),cd=acct.closingDay||15,y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  if(d<=cd){return{s:fmt(new Date(y,m-1,cd+1)),e:fmt(new Date(y,m,cd))};}
+  else{return{s:fmt(new Date(y,m,cd+1)),e:fmt(new Date(y,m+1,cd))};}}
+function ccPrevCycle(acct){
+  const now=new Date(),cd=acct.closingDay||15,y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  if(d<=cd){return{s:fmt(new Date(y,m-2,cd+1)),e:fmt(new Date(y,m-1,cd))};}
+  else{return{s:fmt(new Date(y,m-1,cd+1)),e:fmt(new Date(y,m,cd))};}}
+function ccNextPayDate(acct){
+  const now=new Date(),cd=acct.closingDay||15,pd=acct.paymentDay||10,y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  const payDate=d<=cd?new Date(y,m+1,pd):new Date(y,m+2,pd);
+  return fmt(payDate);}
+function daysUntil(dateStr){return Math.ceil((new Date(dateStr+'T00:00:00')-new Date())/86400000);}
+function ccCycleSp(acct,range){return S.data.expenses.filter(x=>x.accountId===acct.id&&inR(x.date,range.s,range.e)).reduce((s,x)=>s+x.amount,0);}
+function isCreditAcct(a){return a.type==='credit';}
+function ccSection(){
+  const cards=S.data.accounts.filter(isCreditAcct);
+  if(!cards.length)return'';
+  return`<div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;margin-top:4px;">クレジットカード明細</div>
+  <div class="cc-grid">${cards.map(a=>{
+    const bal=acctBal(a);
+    const debt=bal<0?Math.abs(bal):0;
+    const cur=ccCurrentCycle(a);
+    const curSp=ccCycleSp(a,cur);
+    const payDate=ccNextPayDate(a);
+    const dLeft=daysUntil(payDate);
+    const limit=a.creditLimit||0;
+    const util=limit>0?Math.round(debt/limit*100):0;
+    const utilColor=util>=80?'var(--red)':util>=50?'var(--amber)':'var(--green)';
+    const urgCls=dLeft<=3?'urgent':dLeft<=7?'soon':'';
+    const closingLabel='毎月'+(a.closingDay||15)+'日締め / 翌月'+(a.paymentDay||10)+'日払い';
+    return'<div class="cc-card">'
+      +'<div class="cc-stripe" style="background:'+(a.color||'var(--purple)')+'"></div>'
+      +'<div class="cc-head"><div><div class="cc-name">'+a.name+'</div><div class="cc-limit">'+closingLabel+'</div></div>'
+      +(limit>0?'<div style="font-size:11px;color:var(--ink3);">限度額 '+yen(limit)+'</div>':'')+'</div>'
+      +'<div class="cc-row">'
+      +'<div class="cc-stat"><div class="cc-slbl">今サイクル利用</div><div class="cc-sval neg">'+yen(curSp)+'</div></div>'
+      +'<div class="cc-stat"><div class="cc-slbl">支払い残高</div><div class="cc-sval '+(debt>0?'neg':'')+'">'+yen(debt)+'</div></div>'
+      +'</div>'
+      +(limit>0?'<div class="util-wrap"><div class="util-track"><div class="util-fill" style="width:'+Math.min(util,100)+'%;background:'+utilColor+'"></div></div><div class="util-label">利用率 '+util+'%（'+yen(debt)+' / '+yen(limit)+'）</div></div>':'')
+      +'<div class="cc-footer">'
+      +'<div class="cc-paydate '+urgCls+'">次回支払日: '+payDate.replace(/-/g,'/')+' '+(dLeft>=0?'(残'+dLeft+'日)':'(過ぎています)')+' '+(dLeft<=3&&dLeft>=0?'⚠':'')+'</div>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button class="btn bg xs" onclick="openModal('ccpay',''+a.id+'')">💳 支払いを記録</button>'
+      +'<button class="btn bg xs" onclick="openModal('acct',''+a.id+'')">編集</button>'
+      +'</div></div></div>';
+  }).join('')}</div>`;
+}
+
 function gcalUrl(sub){
   const y=S.vm.getFullYear(),m=S.vm.getMonth()+1;
   const day=Math.min(sub.payDay||1,28);
