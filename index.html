@@ -339,6 +339,62 @@ a{color:var(--green);}
   @keyframes mFd{from{opacity:0;transform:scale(.97) translateY(4px);}}
   #fab,#fabm{display:none!important;}
 }
+
+/* ── Mobile optimizations ── */
+@media(max-width:767px){
+  .cc-overview{flex-direction:column;align-items:flex-start;gap:12px;}
+  .cc-gauge-wrap{align-self:center;}
+  .cc-stats-grid{grid-template-columns:1fr 1fr;width:100%;}
+  .cc-cycles{grid-template-columns:1fr;}
+  .cc-grid{grid-template-columns:1fr!important;}
+  .pending-banner{flex-direction:column;align-items:flex-start;}
+  .ph{flex-wrap:wrap;gap:8px;}
+  .ph>div:last-child{width:100%;display:flex;gap:6px;justify-content:flex-end;}
+  .tabs{margin-bottom:10px;}
+  .sr3{grid-template-columns:1fr 1fr 1fr;}
+  .sub-grid{grid-template-columns:1fr!important;}
+  .sbox .svl{font-size:15px;}
+  .acg{grid-template-columns:1fr!important;}
+  .modal{padding:16px 14px 22px;}
+  .fr2{grid-template-columns:1fr;gap:0;}
+  #cnt{padding:calc(var(--mhh)+10px) 12px 76px;}
+  .btn.sm{padding:6px 10px;font-size:11.5px;}
+  .nwb{padding:14px 14px;}
+  .amlg{font-size:28px;}
+  .pt{font-size:21px;}
+  .card{padding:14px;}
+  .cc-stat-val{font-size:17px;}
+  .gcrd{gap:10px;padding:12px 14px;}
+  .gcc{width:48px;height:48px;font-size:22px;}
+  .sub-actions{flex-wrap:wrap;}
+  .txi{padding:8px 4px;gap:8px;}
+  .tico{width:30px;height:30px;font-size:13px;}
+  .tnm{font-size:12.5px;}
+  .tam{font-size:12px;}
+  .cc-body{padding:12px;}
+  .cc-page-header{padding:12px 10px 10px;}
+  .cc-stat-item{padding:9px;}
+  .cc-slbl{font-size:9.5px;}
+  /* Fix stat row on small screens */
+  .sr3{gap:6px;}
+  .sbox{padding:10px 8px;}
+  .slb{font-size:9.5px;}
+  .svl{font-size:17px;}
+}
+@media(max-width:380px){
+  .sr3{grid-template-columns:1fr 1fr;}
+  .sbox.sg{display:none;}
+  .cc-stats-grid{grid-template-columns:1fr 1fr;}
+}
+
+
+/* ── Filter/sort selects ── */
+.filter-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+.filter-bar select{background:var(--surface);border:1px solid var(--border2);border-radius:var(--rxs);color:var(--ink2);padding:5px 8px;font-size:12px;width:auto;cursor:pointer;}
+.filter-bar select:focus{border-color:var(--ink2);}
+@media(max-width:500px){
+  .filter-bar select{font-size:11.5px;padding:4px 6px;}
+}
 </style>
 </head>
 <body>
@@ -493,7 +549,8 @@ const LSKEY='ml4';const FBKEY='ml_fb';
 /* ── State ── */
 let S={
   page:'home',vm:new Date(),rp:'month',repTab:'summary',
-  fabOpen:false,ef:'all',eKei:false,ifree:false,
+  fabOpen:false,ef:'all',eKei:false,ifree:false,expAcct:'all',
+  incFilter:{acct:'all',sort:'date'},expSort:'date',
   data:{accounts:[],incomes:[],expenses:[],transfers:[],wishlist:[],subscriptions:[],ec:[...DEF_EC],ic:[...DEF_IC]}
 };
 let fbApp=null,fbAuth=null,fbDb=null,currentUser=null,saveTimer=null;
@@ -773,8 +830,10 @@ function rCredit(){
 }
 
 function ccCardSection(a){
-  const bal=acctBal(a);
-  const debt=bal<0?Math.abs(bal):0;
+  // 支払い残高 = 前サイクルまでの累計支出 - 累計支払い
+  const allSp=S.data.expenses.filter(x=>x.accountId===a.id).reduce((s,x)=>s+x.amount,0);
+  const allPaid=S.data.transfers.filter(t=>t.toId===a.id).reduce((s,t)=>s+t.amount,0);
+  const debt=Math.max(0,allSp-allPaid);
   const limit=a.creditLimit||0;
   const util=limit>0?Math.round(debt/limit*100):0;
   const utilColor=util>=80?'var(--red)':util>=50?'var(--amber)':'var(--purple)';
@@ -1061,26 +1120,46 @@ function rIncome(){
   const allT=items.reduce((s,x)=>s+x.amount,0);
   const flT=items.filter(x=>x.isFreelance).reduce((s,x)=>s+x.amount,0);
   if(S.ifree)items=items.filter(x=>x.isFreelance);
-  items.sort((a,b)=>b.date.localeCompare(a.date));
+  // Account filter
+  const af=S.incFilter?.acct||'all';
+  if(af!=='all')items=items.filter(x=>x.accountId===af);
+  // Sort
+  const sf=S.incFilter?.sort||'date';
+  if(sf==='amount')items.sort((a,b)=>b.amount-a.amount);
+  else if(sf==='category')items.sort((a,b)=>a.category.localeCompare(b.category,'ja'));
+  else items.sort((a,b)=>b.date.localeCompare(a.date));
   const byC={};items.forEach(x=>{byC[x.category]=(byC[x.category]||0)+x.amount;});
   const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
+  const accts=S.data.accounts.filter(a=>a.type!=='credit');
   document.getElementById('page-income').innerHTML=`
     <div class="ph"><div><div class="pt">収入</div><div class="ps">${ml}</div></div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
-        <button class="btn bp sm" onclick="openModal('income',null)">＋ 追加</button></div></div>
+        <button class="btn bp sm" onclick="openModal('income',null)">＋ 追加</button>
+      </div></div>
     <div class="sr3">
       <div class="sbox si"><div class="slb">合計収入</div><div class="svl pos">${yen(allT)}</div></div>
       <div class="sbox st"><div class="slb">フリーランス</div><div class="svl" style="color:var(--teal)">${yen(flT)}</div></div>
       <div class="sbox" style="border-left:2px solid var(--ink3)"><div class="slb">その他</div><div class="svl">${yen(allT-flT)}</div></div>
     </div>
-    <div style="display:flex;gap:7px;margin-bottom:12px;">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <div class="chip ${!S.ifree?'on':''}" onclick="S.ifree=false;rIncome()">すべて</div>
-      <div class="chip ${S.ifree?'on':''}" onclick="S.ifree=true;rIncome()">フリーランスのみ</div>
+      <div class="chip ${S.ifree?'on':''}" onclick="S.ifree=true;rIncome()">FLのみ</div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <select style="width:auto;padding:5px 8px;font-size:12px;" onchange="S.incFilter={...S.incFilter,acct:this.value};rIncome()">
+          <option value="all">すべての口座</option>
+          ${accts.map(a=>`<option value="${a.id}"${af===a.id?' selected':''}>${aIcon(a.type)} ${a.name}</option>`).join('')}
+        </select>
+        <select style="width:auto;padding:5px 8px;font-size:12px;" onchange="S.incFilter={...S.incFilter,sort:this.value};rIncome()">
+          <option value="date"${sf==='date'?' selected':''}>日付順</option>
+          <option value="amount"${sf==='amount'?' selected':''}>金額順</option>
+          <option value="category"${sf==='category'?' selected':''}>カテゴリ順</option>
+        </select>
+      </div>
     </div>
     ${Object.keys(byC).length>0?`<div class="card">${Object.entries(byC).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`
       <div class="srcr"><div class="tico" style="width:29px;height:29px;font-size:12px;">${ci(c)}</div>
-        <div style="flex:1;min-width:0;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:13px;font-weight:500;">${c}</span><span style="font-family:'DM Mono',monospace;font-size:12.5px;color:var(--green)">${yen(a)}</span></div>
+        <div style="flex:1;min-width:0;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:13px;font-weight:500;">${c}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${yen(a)}</span></div>
         <div class="sbar"><div class="sbf" style="width:${allT>0?Math.round(a/allT*100):0}%"></div></div></div>
         <span style="font-size:10.5px;color:var(--ink3);min-width:28px;text-align:right">${allT>0?Math.round(a/allT*100):0}%</span>
       </div>`).join('')}</div>`:''}
@@ -1094,24 +1173,48 @@ function rExpense(){
   const allT=all.reduce((s,x)=>s+x.amount,0);
   const kT=all.filter(x=>x.isKeiei).reduce((s,x)=>s+x.amount,0);
   const cats=[...new Set(all.map(x=>x.category))];
+  const accts=[...new Set(all.filter(x=>x.accountId).map(x=>x.accountId))].map(id=>S.data.accounts.find(a=>a.id===id)).filter(Boolean);
+  // Filter by category
   let items=S.ef==='all'?all:all.filter(x=>x.category===S.ef);
   if(S.eKei)items=items.filter(x=>x.isKeiei);
-  items.sort((a,b)=>b.date.localeCompare(a.date));
+  // Filter by account
+  const af=S.expAcct||'all';
+  if(af!=='all')items=items.filter(x=>x.accountId===af);
+  // Sort
+  const sf=S.expSort||'date';
+  if(sf==='amount')items.sort((a,b)=>b.amount-a.amount);
+  else if(sf==='category')items.sort((a,b)=>a.category.localeCompare(b.category,'ja'));
+  else items.sort((a,b)=>b.date.localeCompare(a.date));
   const ml=`${S.vm.getFullYear()}年${S.vm.getMonth()+1}月`;
   document.getElementById('page-expense').innerHTML=`
     <div class="ph"><div><div class="pt">支出・経費</div><div class="ps">${ml}</div></div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <div class="mnv"><button onclick="chM(-1)">‹</button><span class="mlb">${S.vm.getMonth()+1}月</span><button onclick="chM(1)">›</button></div>
-        <button class="btn bp sm" onclick="openModal('expense',null)">＋ 追加</button></div></div>
+        <button class="btn bp sm" onclick="openModal('expense',null)">＋ 追加</button>
+      </div></div>
     <div class="sr3">
       <div class="sbox se"><div class="slb">合計支出</div><div class="svl neg">${yen(allT)}</div></div>
       <div class="sbox sa"><div class="slb">経費計上</div><div class="svl" style="color:var(--purple)">${yen(kT)}</div></div>
       <div class="sbox" style="border-left:2px solid var(--ink3)"><div class="slb">プライベート</div><div class="svl">${yen(allT-kT)}</div></div>
     </div>
-    <div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;">
+    <!-- Filter & sort bar -->
+    <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
       <div class="chip ${!S.eKei?'on':''}" onclick="S.eKei=false;rExpense()">すべて</div>
       <div class="chip ${S.eKei?'on':''}" onclick="S.eKei=true;rExpense()">経費のみ</div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <select style="width:auto;padding:5px 8px;font-size:12px;" onchange="S.expAcct=this.value;rExpense()">
+          <option value="all">すべての口座</option>
+          ${accts.map(a=>`<option value="${a.id}"${af===a.id?' selected':''}>${aIcon(a.type)} ${a.name}</option>`).join('')}
+          ${all.some(x=>!x.accountId)?`<option value="none"${'none'===af?' selected':''}>口座なし</option>`:''}
+        </select>
+        <select style="width:auto;padding:5px 8px;font-size:12px;" onchange="S.expSort=this.value;rExpense()">
+          <option value="date"${sf==='date'?' selected':''}>日付順</option>
+          <option value="amount"${sf==='amount'?' selected':''}>金額順</option>
+          <option value="category"${sf==='category'?' selected':''}>カテゴリ順</option>
+        </select>
+      </div>
     </div>
+    <!-- Category chips -->
     <div class="cscr"><div class="chips">
       <div class="chip ${S.ef==='all'?'on':''}" onclick="setEF('all')">全カテゴリ</div>
       ${cats.map(c=>`<div class="chip ${S.ef===c?'on':''}" onclick="setEF('${c.replace(/'/g,"\\'")}')">${ci(c)} ${c}</div>`).join('')}
