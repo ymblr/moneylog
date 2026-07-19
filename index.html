@@ -74,12 +74,12 @@ a{color:var(--green);}
 #cnt{padding:26px 26px 48px;max-width:940px;width:100%;}
 
 /* ── Mobile header ── */
-#mhd{display:none;position:fixed;top:0;left:0;right:0;height:var(--mhh);background:var(--surface);border-bottom:1px solid var(--border);z-index:110;padding:0 14px;align-items:center;gap:10px;}
-.mhbtn{width:34px;height:34px;border-radius:var(--rxs);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink2);cursor:pointer;}
+#mhd{display:none;position:fixed;top:0;left:0;right:0;height:var(--mhh);background:var(--surface);border-bottom:1px solid var(--border);z-index:110;padding:0 16px;align-items:center;gap:10px;}
+.mhbtn{width:36px;height:36px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink2);cursor:pointer;transition:all var(--t);}.mhbtn:hover{background:var(--surface3);color:var(--ink);}
 
 /* ── Bottom nav ── */
-#bnv{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nh);background:var(--surface);border-top:1px solid var(--border);z-index:100;padding:0 2px;justify-content:space-around;align-items:stretch;}
-.bni{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 3px;flex:1;cursor:pointer;color:var(--ink3);font-size:9.5px;font-weight:500;transition:color var(--t);user-select:none;border-radius:8px;margin:4px 1px;}
+#bnv{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nh);background:var(--surface);border-top:1px solid var(--border);z-index:100;justify-content:space-around;align-items:stretch;}
+.bni{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;flex:1;cursor:pointer;color:var(--ink3);font-size:9.5px;font-weight:600;transition:all var(--t);user-select:none;border-radius:10px;margin:4px 2px;letter-spacing:.3px;}
 .bni .bi{font-size:17px;}
 .bni.active{color:var(--ink);background:var(--surface3);}
 
@@ -320,80 +320,215 @@ a{color:var(--green);}
 .info-box strong{color:var(--ink);}
 .loading-scr{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:490;}
 
-@media(max-width:767px){
-  #sb{display:none!important;}
-  #mhd{display:flex;}
-  #main{margin-left:0;}
-  #bnv{display:flex;}
-  #cnt{padding:calc(var(--mhh)+14px) 13px 70px;}
-  .sr3{gap:7px;}
-  .wg,.sub-grid,.acg,.fls{grid-template-columns:1fr 1fr;}
-  .fr2{grid-template-columns:1fr;gap:0;}
-  .pt{font-size:23px;}
-  .amlg{font-size:32px;}
-}
-@media(max-width:420px){.wg,.sub-grid,.acg,.fls{grid-template-columns:1fr;}}
-@media(min-width:768px){
-  #mov{align-items:center;}
-  .modal{border-radius:var(--r);animation:mFd .2s ease;}
-  @keyframes mFd{from{opacity:0;transform:scale(.97) translateY(4px);}}
-  #fab,#fabm{display:none!important;}
-}
+
+
+
 
 /* ── Mobile optimizations ── */
-@media(max-width:767px){
-  .cc-overview{flex-direction:column;align-items:flex-start;gap:12px;}
-  .cc-gauge-wrap{align-self:center;}
-  .cc-stats-grid{grid-template-columns:1fr 1fr;width:100%;}
-  .cc-cycles{grid-template-columns:1fr;}
-  .cc-grid{grid-template-columns:1fr!important;}
-  .pending-banner{flex-direction:column;align-items:flex-start;}
-  .ph{flex-wrap:wrap;gap:8px;}
-  .ph>div:last-child{width:100%;display:flex;gap:6px;justify-content:flex-end;}
-  .tabs{margin-bottom:10px;}
-  .sr3{grid-template-columns:1fr 1fr 1fr;}
-  .sub-grid{grid-template-columns:1fr!important;}
-  .sbox .svl{font-size:15px;}
-  .acg{grid-template-columns:1fr!important;}
-  .modal{padding:16px 14px 22px;}
-  .fr2{grid-template-columns:1fr;gap:0;}
-  #cnt{padding:calc(var(--mhh)+10px) 12px 76px;}
-  .btn.sm{padding:6px 10px;font-size:11.5px;}
-  .nwb{padding:14px 14px;}
-  .amlg{font-size:28px;}
-  .pt{font-size:21px;}
-  .card{padding:14px;}
-  .cc-stat-val{font-size:17px;}
-  .gcrd{gap:10px;padding:12px 14px;}
-  .gcc{width:48px;height:48px;font-size:22px;}
-  .sub-actions{flex-wrap:wrap;}
-  .txi{padding:8px 4px;gap:8px;}
-  .tico{width:30px;height:30px;font-size:13px;}
-  .tnm{font-size:12.5px;}
-  .tam{font-size:12px;}
-  .cc-body{padding:12px;}
-  .cc-page-header{padding:12px 10px 10px;}
-  .cc-stat-item{padding:9px;}
-  .cc-slbl{font-size:9.5px;}
-  /* Fix stat row on small screens */
-  .sr3{gap:6px;}
-  .sbox{padding:10px 8px;}
-  .slb{font-size:9.5px;}
-  .svl{font-size:17px;}
-}
-@media(max-width:380px){
-  .sr3{grid-template-columns:1fr 1fr;}
-  .sbox.sg{display:none;}
-  .cc-stats-grid{grid-template-columns:1fr 1fr;}
-}
+
+
 
 
 /* ── Filter/sort selects ── */
 .filter-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
 .filter-bar select{background:var(--surface);border:1px solid var(--border2);border-radius:var(--rxs);color:var(--ink2);padding:5px 8px;font-size:12px;width:auto;cursor:pointer;}
 .filter-bar select:focus{border-color:var(--ink2);}
-@media(max-width:500px){
-  .filter-bar select{font-size:11.5px;padding:4px 6px;}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — Desktop ≥768px
+══════════════════════════════════════════ */
+@media (min-width: 768px) {
+  #mov { align-items: center; }
+  .modal {
+    border-radius: var(--r);
+    animation: mFd .22s ease;
+  }
+  @keyframes mFd { from { opacity:0; transform:scale(.97) translateY(4px); } }
+  #fab, #fabm { display: none !important; }
+  #mhd { display: none !important; }
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — Mobile <768px
+══════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Hide sidebar, show mobile header + bottom nav */
+  #sb  { display: none !important; }
+  #mhd { display: flex; }
+  #bnv { display: flex; }
+
+  /* Main content: below fixed header, above bottom nav */
+  #main { margin-left: 0; }
+  #cnt  { padding: calc(var(--mhh) + 12px) 14px 80px; }
+
+  /* Page title smaller */
+  .pt   { font-size: 22px; }
+  .amlg { font-size: 26px; }
+
+  /* Card padding */
+  .card { padding: 14px; margin-bottom: 10px; }
+
+  /* Page header stacks on mobile */
+  .ph {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .ph > div:last-child {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* Stat rows */
+  .sr3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+  .sr3 > :nth-child(3) { grid-column: 1 / -1; }
+  .sbox { padding: 11px 10px; }
+  .slb  { font-size: 9.5px; }
+  .svl  { font-size: 17px; }
+
+  /* Transaction rows */
+  .txi  { padding: 9px 4px; gap: 9px; }
+  .tico { width: 32px; height: 32px; font-size: 14px; border-radius: 8px; }
+  .tnm  { font-size: 13px; }
+  .tmt  { font-size: 10.5px; }
+  .tam  { font-size: 12.5px; }
+
+  /* Grade card */
+  .gcrd { padding: 14px; gap: 12px; }
+  .gcc  { width: 50px; height: 50px; font-size: 22px; }
+  .gt   { font-size: 13.5px; }
+  .gm   { font-size: 12px; }
+
+  /* Net worth box */
+  .nwb { padding: 14px; }
+
+  /* Account grid: 2 columns */
+  .acg  { grid-template-columns: 1fr 1fr; gap: 9px; }
+  .acc  { padding: 13px; }
+  .acbal { font-size: 19px; }
+
+  /* Wishlist: 2 columns */
+  .wg   { grid-template-columns: 1fr 1fr; gap: 9px; }
+  .wc   { padding: 13px; }
+
+  /* Subscription: 1 column */
+  .sub-grid { grid-template-columns: 1fr; gap: 9px; }
+  .sub-card { padding: 14px; }
+
+  /* CC page */
+  .cc-grid   { grid-template-columns: 1fr !important; gap: 10px; }
+  .cc-card   { padding: 14px; }
+  .cc-overview { flex-direction: column; align-items: center; gap: 12px; }
+  .cc-gauge-wrap { display: flex; justify-content: center; }
+  .cc-stats-grid { grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
+  .cc-stat-item  { padding: 10px; }
+  .cc-stat-lbl   { font-size: 9.5px; }
+  .cc-stat-val   { font-size: 18px; }
+  .cc-cycles { grid-template-columns: 1fr; gap: 8px; }
+  .cc-page-header { padding: 12px 10px; }
+  .cc-body { padding: 13px; }
+  .pending-banner { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  /* Freelance summary */
+  .fls { grid-template-columns: 1fr 1fr; gap: 9px; }
+
+  /* Tabs */
+  .tabs  { width: 100%; justify-content: stretch; }
+  .tab   { flex: 1; text-align: center; padding: 7px 8px; }
+
+  /* Month nav */
+  .mnv button { padding: 5px 10px; font-size: 14px; }
+  .mlb { font-size: 14px; min-width: 36px; }
+
+  /* Category chips: horizontal scroll */
+  .cscr { margin-bottom: 10px; }
+  .chip { padding: 5px 12px; font-size: 12px; }
+
+  /* Filter bar */
+  .filter-bar-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .filter-bar-row select {
+    flex: 1;
+    min-width: 110px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  /* Modal: full screen sheet */
+  .modal {
+    border-radius: var(--r) var(--r) 0 0;
+    padding: 18px 14px 24px;
+    max-height: 90vh;
+  }
+  .mhd2 { margin-bottom: 14px; }
+  .mtt  { font-size: 19px; }
+
+  /* Form: single column always */
+  .fr2  { grid-template-columns: 1fr; gap: 0; }
+  .fg   { margin-bottom: 11px; }
+  .fl   { font-size: 10px; }
+
+  /* Buttons */
+  .btn.sm  { padding: 7px 12px; font-size: 12px; }
+  .btn.xs  { padding: 4px 9px;  font-size: 11px; }
+  .google-btn { padding: 13px; font-size: 14px; }
+
+  /* Auth card */
+  .auth-card { padding: 24px 18px; }
+  .auth-logo { font-size: 28px; }
+
+  /* Schedule list in subs */
+  .sch-item { gap: 8px; padding: 9px 0; }
+  .sch-day  { font-size: 20px; width: 30px; }
+  .sch-name { font-size: 13px; }
+
+  /* FAB and menu */
+  #fab {
+    bottom: calc(var(--nh) + 14px);
+    right: 14px;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+  }
+  #fabm {
+    bottom: calc(var(--nh) + 74px);
+    right: 14px;
+  }
+  .fi { padding: 9px 16px; font-size: 13px; }
+
+  /* Src bar rows */
+  .srcr { gap: 8px; padding: 8px 0; }
+
+  /* Bottom nav items */
+  .bni  { font-size: 9px; }
+  .bni .bi { font-size: 18px; }
+}
+
+
+  /* Override sr3 to stay 3-col on medium mobile */
+  @media (min-width: 401px) and (max-width: 767px) {
+    .sr3 { grid-template-columns: repeat(3,1fr); }
+    .sr3 > :nth-child(3) { grid-column: auto; }
+  }
+
+  /* ── Very small screens ≤400px ── */
+@media (max-width: 400px) {
+  .acg { grid-template-columns: 1fr; }
+  .wg  { grid-template-columns: 1fr; }
+  .fls { grid-template-columns: 1fr; }
+  .cc-stats-grid { grid-template-columns: 1fr 1fr; }
+  .auth-card { padding: 20px 14px; }
 }
 </style>
 </head>
@@ -494,7 +629,11 @@ a{color:var(--green);}
   </div>
   <div id="mhd">
     <div class="sblogo" style="padding:0;border:none;flex:1;"><div class="logom">M</div><span class="logot">MoneyLog</span></div>
-    <div class="mhbtn" onclick="nav('settings')">⚙</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+    <div class="mhbtn" onclick="openModal('income',null)" title="収入追加">↑</div>
+    <div class="mhbtn" onclick="openModal('expense',null)" title="支出追加">↓</div>
+    <div class="mhbtn" onclick="nav('settings')" title="設定">⚙</div>
+  </div>
   </div>
   <div id="fab" onclick="toggleFab()">＋</div>
   <div id="fabm">
@@ -1145,7 +1284,7 @@ function rIncome(){
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <div class="chip ${!S.ifree?'on':''}" onclick="S.ifree=false;rIncome()">すべて</div>
       <div class="chip ${S.ifree?'on':''}" onclick="S.ifree=true;rIncome()">FLのみ</div>
-      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+      <div class="filter-bar-row" style="margin-left:auto;">
         <select style="width:auto;padding:5px 8px;font-size:12px;" onchange="S.incFilter={...S.incFilter,acct:this.value};rIncome()">
           <option value="all">すべての口座</option>
           ${accts.map(a=>`<option value="${a.id}"${af===a.id?' selected':''}>${aIcon(a.type)} ${a.name}</option>`).join('')}
@@ -1201,7 +1340,7 @@ function rExpense(){
     <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
       <div class="chip ${!S.eKei?'on':''}" onclick="S.eKei=false;rExpense()">すべて</div>
       <div class="chip ${S.eKei?'on':''}" onclick="S.eKei=true;rExpense()">経費のみ</div>
-      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <div class="filter-bar-row" style="margin-left:auto;">
         <select style="width:auto;padding:5px 8px;font-size:12px;" onchange="S.expAcct=this.value;rExpense()">
           <option value="all">すべての口座</option>
           ${accts.map(a=>`<option value="${a.id}"${af===a.id?' selected':''}>${aIcon(a.type)} ${a.name}</option>`).join('')}
