@@ -785,9 +785,7 @@ function ensureDefaults(){
   if(!S.data.ic?.length)S.data.ic=[...DEF_IC];
   if(!S.data.accounts)S.data.accounts=[];
   if(!S.data.transfers)S.data.transfers=[];
-    if(!S.data.adjustments)S.data.adjustments=[];
   if(!S.data.subscriptions)S.data.subscriptions=[];
-  if(!S.data.adjustments)S.data.adjustments=[];
   if(!S.data.wishlist)S.data.wishlist=[];
   if(!S.data.incomes)S.data.incomes=[];
   if(!S.data.expenses)S.data.expenses=[];
@@ -869,8 +867,7 @@ function acctBal(a){
   const exp =S.data.expenses.filter(x=>x.accountId===id).reduce((s,x)=>s+x.amount,0);
   const tin =S.data.transfers.filter(x=>x.toId===id).reduce((s,x)=>s+x.amount,0);
   const tout=S.data.transfers.filter(x=>x.fromId===id).reduce((s,x)=>s+x.amount,0);
-  const adj =(S.data.adjustments||[]).filter(x=>x.accountId===id&&!x._del).reduce((s,x)=>s+x.amount,0);
-  return (a.initialBalance||0)+inc-exp+tin-tout+adj;
+  return (a.initialBalance||0)+inc-exp+tin-tout;
 }
 function netWorth(){return S.data.accounts.reduce((s,a)=>s+acctBal(a),0);}
 function acctOpts(sel){return'<option value="">− 未設定 −</option>'+S.data.accounts.map(a=>`<option value="${a.id}"${sel===a.id?' selected':''}>${aIcon(a.type)} ${a.name}</option>`).join('');}
@@ -972,9 +969,8 @@ function rCredit(){
 }
 
 function ccCardSection(a){
-  const allSp=S.data.expenses.filter(x=>x.accountId===a.id).reduce((s,x)=>s+x.amount,0);
-  const allPaid=S.data.transfers.filter(t=>t.toId===a.id).reduce((s,t)=>s+t.amount,0);
-  const debt=Math.max(0,allSp-allPaid);
+  const bal=acctBal(a);
+  const debt=bal<0?Math.abs(bal):0;
   const limit=a.creditLimit||0;
   const util=limit>0?Math.round(debt/limit*100):0;
   const utilColor=util>=80?'var(--red)':util>=50?'var(--amber)':'var(--purple)';
@@ -987,44 +983,23 @@ function ccCardSection(a){
   const linkedBal=linked?acctBal(linked):null;
   const paidThisCycle=isPaymentDoneThisCycle(a);
   const autoOn=!!(a.autoPayment&&a.linkedAccountId);
+  const recentTx=S.data.expenses.filter(x=>x.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date)).slice(0,5);
 
-  // All expenses and payments for this card
-  const allExpenses=S.data.expenses.filter(x=>x.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date));
-  const allPayments=S.data.transfers.filter(t=>t.toId===a.id).sort((x,y)=>y.date.localeCompare(x.date));
-
-  // Payment warning
   let payNotice='';
-  if(!paidThisCycle&&prevSp>0){
+  if(!paidThisCycle&&prevSp>0&&dLeft<=7){
     const shortfall=linked&&linkedBal!==null&&linkedBal<prevSp;
-    const urgent=dLeft<=7;
-    if(urgent||dLeft<0){
-      payNotice='<div class="pending-banner" style="'+(dLeft<=0?'background:var(--red-lt);border-color:var(--red-mid);':'')+'">'
-        +'<div>'
-        +'<div style="font-size:13px;font-weight:600;color:'+(dLeft<=0?'var(--red)':'var(--amber)')+';">'
-        +(dLeft<=0?'⚠ 支払日を過ぎています':'⏰ 支払日まで残'+dLeft+'日')+'</div>'
-        +'<div style="font-size:12px;color:var(--ink2);margin-top:2px;">'+payDate.replace(/-/g,'/')+' に '+yen(prevSp)+' の支払いが必要です</div>'
-        +(linked?'<div style="font-size:11.5px;color:'+(shortfall?'var(--red)':'var(--ink3)')+';">'+linked.name+': '+yen(linkedBal)+(shortfall?' ⚠ 残高不足':'')+'</div>':'')
-        +'</div>'
-        +'<button class="btn brd sm" data-ccpay="'+a.id+'">今すぐ記録</button>'
-        +'</div>';
-    }
+    payNotice='<div class="pending-banner">'
+      +'<div>'
+      +'<div style="font-size:13px;font-weight:600;color:'+(dLeft<=0?'var(--red)':'var(--amber)')+';">'
+      +(dLeft<=0?'⚠ 支払日を過ぎています':'⏰ 支払日まで残'+dLeft+'日')+'</div>'
+      +'<div style="font-size:12px;color:var(--ink2);margin-top:2px;">'+payDate.replace(/-/g,'/')+' に '+yen(prevSp)+' の支払いが必要です</div>'
+      +(linked?'<div style="font-size:11.5px;color:'+(shortfall?'var(--red)':'var(--ink3)')+';">'+linked.name+': '+yen(linkedBal)+(shortfall?' ⚠ 残高不足':'')+'</div>':'')
+      +'</div>'
+      +'<button class="btn brd sm" data-ccpay="'+a.id+'">今すぐ記録</button>'
+      +'</div>';
   }else if(paidThisCycle){
     payNotice='<div class="auto-banner">✓ 今サイクルの支払いは完了しています</div>';
   }
-
-  // Payment history rows
-  const payRows=allPayments.map(t=>'<div class="txi" data-mtype="transfer" data-id="'+t.id+'">'
-    +'<div class="tdot" style="background:var(--green)"></div>'
-    +'<div class="tico" style="background:var(--green-lt);">💳</div>'
-    +'<div class="tinf">'
-    +'<div class="tnm">'+(t.memo||'支払い')+'</div>'
-    +'<div class="tmt">'+t.date.replace(/-/g,'/')+' · '+(aName(t.fromId)||'口座不明')+' → '+a.name+'</div>'
-    +'</div>'
-    +'<div class="tam pos">+'+yen(t.amount)+'</div>'
-    +'</div>').join('');
-
-  // Expense history rows
-  const expRows=allExpenses.map(x=>txRow({...x,type:'expense'})).join('');
 
   return '<div class="cc-page-card">'
     +'<div class="cc-page-header">'
@@ -1038,13 +1013,11 @@ function ccCardSection(a){
     +' ／ 毎月'+(a.closingDay||15)+'日締め・翌'+(a.paymentDay||10)+'日払い</div>'
     +'</div>'
     +'<div style="display:flex;gap:5px;flex-shrink:0;">'
-    +'<button class="btn bg xs" onclick="openModal('balAdj',''+a.id+'')">残高修正</button>'
+    +'<button class="btn bp sm" data-ccpay="'+a.id+'">💳 支払い記録</button>'
     +'<button class="btn bg xs" data-ccset="'+a.id+'">⚙設定</button>'
     +'</div></div>'
-
     +'<div class="cc-body">'
     +payNotice
-
     +'<div class="cc-overview">'
     +'<div class="cc-gauge-wrap">'+ccGauge(util,utilColor)+'</div>'
     +'<div class="cc-stats-grid">'
@@ -1053,99 +1026,19 @@ function ccCardSection(a){
     +(limit>0?'<div class="cc-stat-item" style="border-left:2px solid var(--ink3)"><div class="cc-stat-lbl">利用限度額</div><div class="cc-stat-val">'+yen(limit)+'</div></div>':'<div></div>')
     +'<div class="cc-stat-item" style="border-left:2px solid '+urgColor+'"><div class="cc-stat-lbl">次回支払日</div><div class="cc-stat-val" style="font-size:14px;color:'+urgColor+'">'+payDate.replace(/-/g,'/')+' <span style="font-size:11px;">残'+Math.max(0,dLeft)+'日</span></div></div>'
     +'</div></div>'
-
     +ccTimeline(a)
-
     +'<div class="cc-cycles">'
     +'<div class="cc-cycle-box" style="background:var(--surface2)"><div class="cc-cycle-lbl">今サイクル（利用中）</div><div class="cc-cycle-range">'+fd(cur.s)+' 〜 '+fd(cur.e)+'</div><div class="cc-cycle-val" style="color:var(--purple)">'+yen(curSp)+'</div></div>'
     +'<div class="cc-cycle-box" style="background:'+(paidThisCycle?'var(--green-lt)':'var(--red-lt)')+';border-color:'+(paidThisCycle?'var(--green-mid)':'var(--red-mid)')+'"><div class="cc-cycle-lbl" style="color:'+(paidThisCycle?'var(--green)':'var(--red)')+'">前サイクル（'+(paidThisCycle?'支払済':'支払待ち')+'）</div><div class="cc-cycle-range">'+fd(prev.s)+' 〜 '+fd(prev.e)+'</div><div class="cc-cycle-val '+(paidThisCycle?'':'neg')+'">'+yen(prevSp)+'</div></div>'
     +'</div>'
-
-    +'<button class="btn bp" style="width:100%;margin-bottom:16px;" data-ccpay="'+a.id+'">💳 支払いを手動で記録する</button>'
-
-    +(allPayments.length>0
-      ?'<div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">支払い履歴（'+allPayments.length+'件）</div>'
-       +'<div class="txl" style="margin-bottom:16px;">'+payRows+'</div>'
-      :'')
-
-    +'<div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">利用履歴（'+allExpenses.length+'件）</div>'
-    +(allExpenses.length===0
-      ?'<div class="emp"><div class="eico">📭</div><div class="emsg">利用履歴がありません</div></div>'
-      :'<div class="txl">'+expRows+'</div>')
+    +(recentTx.length>0?'<div class="cc-recent-lbl">最近の利用（'+recentTx.length+'件）</div><div class="txl">'+recentTx.map(x=>txRow({...x,type:'expense'})).join('')+'</div>':'')
     +'</div></div>';
 }
 
 
-/* ── Balance Adjustment ── */
-function mBalAdj(acctId){
-  if(!acctId){return '';}
-  const acct=S.data.accounts.find(x=>x.id===acctId);
-  if(!acct){return '';}
-  const cur=acctBal(acct);
-  const adjs=(S.data.adjustments||[]).filter(x=>x.accountId===acctId&&!x._del)
-    .sort((a,b)=>b.date.localeCompare(a.date));
 
-  let adjHtml='';
-  if(adjs.length>0){
-    adjHtml='<div style="height:1px;background:var(--border);margin:12px 0;"></div>'
-      +'<div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">修正履歴（'+adjs.length+'件）</div>';
-    adjs.forEach(a=>{
-      const col=a.amount>=0?'var(--green)':'var(--red)';
-      const sign=a.amount>=0?'+':'';
-      adjHtml+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">'
-        +'<div><span style="color:var(--ink3);font-size:12px;">'+a.date.replace(/-/g,'/')+'</span>'
-        +'<span style="margin-left:8px;font-size:13px;">'+(a.memo||'残高修正')+'</span></div>'
-        +'<div style="display:flex;align-items:center;gap:10px;">'
-        +'<span style="font-family:\'DM Mono\',monospace;color:'+col+';">'+sign+yen(a.amount)+'</span>'
-        +'<span style="cursor:pointer;color:var(--ink3);font-size:18px;" onclick="delAdj(\''+a.id+'\')">×</span>'
-        +'</div></div>';
-    });
-  }
 
-  const curCol=cur>=0?'var(--green)':'var(--red)';
-  let html='<div class="mhd2"><div class="mtt">残高修正</div><div class="mcl" onclick="closeModal()">×</div></div>';
-  html+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rxs);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">'
-    +'<div><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;">現在の残高</div>'
-    +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:600;color:'+curCol+';">'+yen(cur)+'</div></div>'
-    +'<div style="font-size:11.5px;color:var(--ink3);">'+acct.name+'</div></div>';
-  html+='<div class="fg"><label class="fl">修正後の正しい残高 (¥)</label>'
-    +'<input type="number" id="adj-target" placeholder="'+Math.round(cur)+'" inputmode="decimal">'
-    +'<div class="fh">実際の残高を入力。差額が補正記録として保存されます。</div></div>';
-  html+='<div class="fg"><label class="fl">メモ（任意）</label>'
-    +'<input type="text" id="adj-memo" placeholder="ATM確認・利息など"></div>';
-  html+='<div class="fg"><label class="fl">日付</label>'
-    +'<input type="date" id="adj-date" value="'+today()+'"></div>';
-  html+=adjHtml;
-  html+='<div class="mact">'
-    +'<button class="btn bg" onclick="closeModal()">キャンセル</button>'
-    +'<button class="btn bp" onclick="saveBalAdj(\''+acctId+'\')">修正を保存</button>'
-    +'</div>';
-  return html;
-}
-function saveBalAdj(acctId){
-  const raw=gv('adj-target').trim();
-  if(!raw){toast('残高を入力してください','err');return;}
-  const target=parseFloat(raw);
-  if(isNaN(target)){toast('数値を入力してください','err');return;}
-  const acct=S.data.accounts.find(x=>x.id===acctId);
-  if(!acct)return;
-  const cur=acctBal(acct);
-  const diff=Math.round((target-cur)*100)/100;
-  if(Math.abs(diff)<0.01){toast('変更はありません');return;}
-  if(!S.data.adjustments)S.data.adjustments=[];
-  const n=nowIso();
-  S.data.adjustments.push({id:uid(),accountId:acctId,amount:diff,
-    date:gv('adj-date')||today(),memo:gv('adj-memo').trim()||'残高修正',
-    createdAt:n,updatedAt:n});
-  save();closeModal();
-  toast('残高を'+yen(target)+'に修正しました','ok');renderPage();
-}
-function delAdj(adjId){
-  if(!confirm('この修正記録を削除しますか？'))return;
-  const i=(S.data.adjustments||[]).findIndex(x=>x.id===adjId);
-  if(i>-1)S.data.adjustments[i]._del=true;
-  save();closeModal();renderPage();
-}
+
 
 /* ── Credit card helpers ── */
 function ccCurrentCycle(acct){
@@ -1239,7 +1132,6 @@ function openModal(type,id){
   else if(type==='sub')inn.innerHTML=mSub(editingId);
   else if(type==='ccpay')inn.innerHTML=mCCPay(editingId);
   else if(type==='creditcard')inn.innerHTML=mCreditCard(editingId);
-  else if(type==='balAdj')inn.innerHTML=mBalAdj(editingId);
 }
 function closeModal(){document.getElementById('mov').classList.remove('open');editingId=null;}
 function ovClick(e){if(e.target===document.getElementById('mov'))closeModal();}
@@ -1277,10 +1169,6 @@ document.addEventListener('click',e=>{
   if(cp){openModal('ccpay',cp.dataset.ccpay);return;}
   const cs=e.target.closest('[data-ccset]');
   if(cs){openModal('creditcard',cs.dataset.ccset);return;}
-  const ba=e.target.closest('[data-baladj]');
-  if(ba){e.stopPropagation();openModal('balAdj',ba.dataset.baladj);return;}
-  const bao=e.target.closest('[data-baladj-open]');
-  if(bao){e.stopPropagation();openModal('balAdj',bao.dataset.balAdjOpen||bao.getAttribute('data-baladj-open'));return;}
 });
 
 /* ── HOME ── */
@@ -1339,7 +1227,6 @@ function rAssets(){
       <div class="ach"><div class="acico" style="background:${a.color||'#eee'}20;border:1px solid ${a.color||'#ccc'}40;">${aIcon(a.type)}</div>
       <div><div class="acn">${a.name}</div><div class="act">${aLabel(a.type)}</div></div></div>
       <div class="acbal ${b>=0?'pos':'neg'}">${yen(b)}</div>
-      <button class="btn bg xs" style="margin-top:8px;" data-baladj="${a.id}">残高修正</button>
     </div>`;}).join('')}</div>`}
     ${ccSection()}${xfrs.length>0?`<div class="card"><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">最近の振替</div><div class="txl">${xfrs.map(x=>txRow({...x,type:'transfer'})).join('')}</div></div>`:''}`;
 }
@@ -1718,24 +1605,10 @@ function toggleSubCycle(){const v=gv('sc');const r=document.getElementById('pay-
 function mAcct(id){
   const item=id?S.data.accounts.find(x=>x.id===id):null;
   const v=item||{name:'',type:'bank',initialBalance:0,color:COLORS[0]};
-  // Balance row (edit mode) vs initial balance field (new mode)
-  let balField='';
-  if(id){
-    const curBal=yen(acctBal(item));
-    balField='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rxs);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
-      +'<div><div style="font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">現在の残高</div>'
-      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:600;">'+curBal+'</div></div>'
-      +'<button class="btn bg sm" data-baladj-open="" + id + "">残高を修正 →</button>'
-      +'</div>';
-  }else{
-    balField='<div class="fg"><label class="fl">初期残高（現在の実際の残高）</label>'
-      +'<input type="number" id="ainit" value="0" inputmode="decimal">'
-      +'<div class="fh">現在の残高を入力。収入には換算されません。</div></div>';
-  }
   return `<div class="mhd2"><div class="mtt">${item?'口座を編集':'口座を追加'}</div><div class="mcl" onclick="closeModal()">×</div></div>
     <div class="fg"><label class="fl">口座名</label><input type="text" id="aname" value="${v.name}" placeholder="例：楽天銀行、財布、Suica"></div>
     <div class="fg"><label class="fl">種別</label><select id="atype" onchange="const f=document.getElementById('cc-fields');if(f)f.style.display=this.value==='credit'?'block':'none'">${Object.entries(ACCT_T).map(([k,o])=>`<option value="${k}"${v.type===k?' selected':''}>${o.i} ${o.l}</option>`).join('')}</select></div>
-    ${balField}
+    <div class="fg"><label class="fl">初期残高（現在の実際の残高）</label><input type="number" id="ainit" value="${v.initialBalance||0}" inputmode="decimal"><div class="fh">現在の残高を入力。収入には換算されません。</div></div>
     <div id="cc-fields" style="${v.type==='credit'?'':'display:none;'}border-top:1px solid var(--border);margin-top:4px;padding-top:12px;">
       <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">💳 クレジットカード設定</div>
       <div class="fr2">
